@@ -1,0 +1,21 @@
+===安装 Asterisk===
+
+====关闭 SELINUX====
+ sed -i s/SELINUX=enforcing/SELINUX=disabled/g /etc/selinux/config
+
+====安装 Asterisk====
+ 32bit：./configure && make menuselect && make && make install && make samples
+ 64bit：./configure --libdir=/usr/lib64 && make menuselect && make && make install && make samples
+
+====把 asterisk 添加进服务====
+ 添加 Asterisk 启动脚本到 /etc/init.d/
+ 	cd /usr/src/asterisk-11.0.0; make config
+
+====安装问题====
+ 64 位机未按上述操作安装 Asterisk，出现的问题
+ Q：asterisk: error while loading shared libraries: libasteriskssl.so.1: cannot open shared object file: No such file or directory
+ A：ln -s /usr/lib/libasteriskssl.so.1 /usr/lib64/libasteriskssl.so.1
+
+ Q：No such command 'dahdi'
+ A：cp /usr/lib/asterisk/modules/*  /usr/lib64/asterisk/modules/*
+ A：启动时使用：/bin/sh /usr/sbin/safe_asterisk -U asterisk -G asterisk

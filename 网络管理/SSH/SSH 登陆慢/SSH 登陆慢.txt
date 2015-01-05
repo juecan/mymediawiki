@@ -1,0 +1,26 @@
+===SSH 登陆慢===
+
+*关闭 DNS 反向解析
+
+ [~]$ sudo vi /etc/ssh/sshd_config
+ UseDNS no
+ [~]$ sudo service sshd restart
+
+ 用户登录时，OpenSSH 会验证 IP，根据用户的 IP 使用反向 DNS 找到主机名，再使用 DNS 找到 IP 地址，最后匹配登录的 IP 是否合法。
+ 如果客户机的 IP 没有域名，或者 DNS 服务器很慢或不通，那么登录就会很花时间。
+
+*用 ssh -v user@server 可以看到登录时有如下信息：
+
+ debug1: Next authentication method: gssapi-with-mic
+ debug1: Unspecified GSS failure. Minor code may provide more information
+
+ 在客户端上修改 ssh 客户端配置（注意不是 sshd_conf）：
+ [~]$ sudo vi /etc/ssh/etc/ssh/ssh_config
+ GSSAPIAuthentication no
+ [~]$ sudo service sshd restart
+
+ 使用 ssh -o GSSAPIAuthentication=no user@server 登录
+
+ GSSAPI（Generic Security Services Application Programming Interface）是一套类似 Kerberos 5 的通用网络安全系统接口。
+ 该接口是对各种不同的客户端服务器安全机制的封装，以消除安全接口的不同，降低编程难度。
+ 但该接口在目标机器无域名解析时会有问题

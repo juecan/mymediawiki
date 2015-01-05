@@ -1,0 +1,128 @@
+===pri 信令分析===
+
+协议鉴别语：Q.931
+	Q.931 的协议鉴别语的 8 位字节编码为：08
+PRI Span: 1 > Protocol Discriminator: Q.931 (8)  len=35
+
+地址字段：终端端点标识符（TEI）
+呼叫参考：Call Reference
+	一般包括 3 个 8 位字节编码
+呼叫发起方发送
+PRI Span: 1 > TEI=0 Call Ref: len= 2 (reference 1/0x1) (Sent from originator)
+
+承载能力：Bearer Capability
+	8 位字节编码：04
+	指示网络所提供的一个被请求的 I.231 承载业务
+	标识承载的业务类型、传输模式及信息传递速率等信息。
+	对主叫来说，在用户－>网络接口，网络侧将检查主叫用户通过 Bearer capability 请求的承载业务是否和网络侧提供给该用户的承载业务相匹配。若发现不匹配，将拒绝该呼叫。（Cause=57\58\63\65）
+	对被叫来说，在网络－>用户接口，网络侧为被叫提供一个承载业务，用户要检查该网络侧通过Bearer capability提供的承载业务是否和用户能所支持的承载业务相匹配，若发现不匹配，将拒绝该呼叫。（Cause=88）
+
+	编码标准：Coding standard
+		在无线市话系统中采用的是 ITU-T 标准编码
+	信息传递能力：Information transfer capability
+	传递方式：Transfer mode
+		7	6				
+		0	0	Circuit mode（电路方式）
+		1	0	Packet mode（分组方式，未使用）
+	信息传递速率：Information transfer rate
+	用户信息一层协议：User information layer 1 protocol reserved.
+PRI Span: 1 > Bearer Capability (len= 5) [ Ext: 1  Coding-Std: 0  Info transfer capability: Speech (0)
+PRI Span: 1 >                              Ext: 1  Trans mode/rate: 64kbps, circuit-mode (16)
+PRI Span: 1 >                                User information layer 1: A-Law (35)
+PRI Span: 1 > [18 03 a9 83 81]
+
+通路识别：Channel ID
+	8 位字节编码：18
+	在信令流程所控制的接口内确认一个通道
+	识别由信令流程所控制的接口范围内的通路
+	在系统中，通过该信息单元可确认一个呼叫通路占用的是那一条B通道
+		对E1链路来说是那条E1线路及那个时隙；
+		对CS和CSC间的ISDN线路来说是那个2B+D接口及那个B通道
+	在系统中，在CSC到网络侧的接口上，对主叫消息流程来说，该信息单元内容在CSC向网络侧方向所发的SETUP消息内已存在，同时在网络侧发回的CALL PROC消息内也存在；对被叫消息流程来说，虽然在网络侧发下来的SETUP消息内已经存在该信息单元，但其中的“信息通路选择”字段标识为“11”（any channel），此时还没有分配B-CH，所分配的B-CH通过CSC向网络侧方向所回的CALL PROC消息内的通路识别信息单元标识，即CSC负责分配通道的占用。
+	同样在CS和CSC的接口上，B通道的分配是由CS来负责的。
+
+	存在接口标识：IntID
+		无线市话系统采用的是接口明确标识
+		7
+		0	Interface implicitly identified (Note 1)
+		1	Interface explicitly identified in one or more octets, beginning with octet 3.1.
+	接口类型：Int. type
+		6
+		0	Basic interface
+		1	Other interface, e.g. primary rate (Note 2)
+		无线市话系统CSC和GW间采用的是其他接口，一次群速率接口（2M）；CSC和CS间采用的是基本接口。
+	优选/指定：Pref/Excl.
+		4
+		0	Indicated channel is preferred
+		1	Exclusive; only the indicated channel is acceptable
+	D通路指示：D channel（Dchan）
+		3
+		0	The channel identified is not the D-channel
+		1	The channel identified is the D-channel
+		D通路指示仅对D通路的使用有效
+	信息通路选择：Channel Selection（ChanSel）
+	接口标识：Interface identifier
+	编码标准：Coding standard
+	号码/图：Number/map
+	通路类型：Channel type
+	通路号码：Channel number/slot
+	通路的二进制码标识，对B通路，通路号码等于时隙号码
+PRI Span: 1 > Channel ID (len= 5) [ Ext: 1  IntID: Implicit  Other(PRI)  Spare: 0  Exclusive  Dchan: 0
+PRI Span: 1 >                       ChanSel: As indicated in following octets
+PRI Span: 1 >                       Ext: 1  Coding: 0  Number Specified  Channel Type: 3
+PRI Span: 1 >                       Ext: 1  Channel: 1 Type: NET]
+
+显示（长度）：主叫号码
+PRI Span: 1 > Display (len= 5) [ 18101 ]
+
+主叫号码：Calling Party Number
+	8 位字节编码：6c
+
+	号码类型：Type of number
+		Unknown、International number、National number、Network specific number
+		Subscriber number、Abbreviated number、Reserved for extension
+	编号方案标识：Numbering plan identification，NPI
+		Unknown、ISDN/telephony numbering plan、Data numbering plan
+		Telex numbering plan、National standard numbering plan
+		Private numbering plan、Reserved for extension
+PRI Span: 1 > Calling Party Number (len= 9) [ Ext: 0  TON: National Number (2)  NPI: ISDN/Telephony Numbering Plan (E.164/E.163) (1)
+PRI Span: 1 >                                 Presentation: Presentation allowed, User-provided, not screened (0)  '18101' ]
+
+被叫号码：Called Party Number
+	8 位字节编码：70
+PRI Span: 1 > Called Party Number (len= 3) [ Ext: 1  TON: Unknown Number Type (0)  NPI: Unknown Number Plan (0)  '' ]
+
+消息类型：CALL PROCEEDING
+	8 位字节编码：02
+PRI Span: 3 > Message Type: CALL PROCEEDING (2)
+PRI Span: 3 TEI=0 Transmitting N(S)=0, window is open V(A)=0 K=7
+
+通路识别：Channel ID
+	8 位字节编码：18
+PRI Span: 3 > Channel ID (len= 5) [ Ext: 1  IntID: Implicit  Other(PRI)  Spare: 0  Exclusive  Dchan: 0
+PRI Span: 3 >                       ChanSel: As indicated in following octets
+PRI Span: 3 >                       Ext: 1  Coding: 0  Number Specified  Channel Type: 3
+PRI Span: 3 >                       Ext: 1  Channel: 1 Type: CPE]
+
+进展指示：Progress indicator
+	描述呼叫进展阶段所发生的事件
+
+	编码标准：Coding
+	位置：Location
+	进展描述：Progress description
+	若收到的 SETUP 消息内的承载能力信息单元标识为“语音”、“3.1kHZ音频”或“带有信号音/录音通知的不受限的数字信息”，则网络在发送ALERT消息的同时应向主叫用户提供回铃音，而且ALERT消息内带有进展描述No.8“带内信息或适当的花样目前可用”。
+PRI Span: 3 > Progress Indicator (len= 4) [ Ext: 1  Coding: CCITT (ITU) standard (0)  0: 0  Location: Private network serving the local user (1)
+PRI Span: 3 >                               Ext: 1  Progress Description: Called equipment is non-ISDN. (2) ]
+
+呼叫中断原因：Cause
+	8 位字节编码：08
+	DISCONNECT消息必须包含该信息单元
+	说明产生某些消息的原因，在流程差错事件中提供诊断信息，指明原因产生的位置
+
+	编码标准：Coding
+	位置：Location
+	建议：Recommendation
+	原因值：Cause value
+	诊断：Diagnostic
+PRI Span: 3 > Cause (len= 4) [ Ext: 1  Coding: CCITT (ITU) standard (0)  Spare: 0  Location: Private network serving the local user (1)
+PRI Span: 3 >                  Ext: 1  Cause: Normal Clearing (16), class = Normal Event (1) ]

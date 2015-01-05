@@ -1,0 +1,131 @@
+===NFS===
+ NFS 是 Network File System 的简写，即网络文件系统。
+ 网络文件系统是 FreeBSD 支持的文件系统中的一种，也被称为 NFS。NFS 允许一个系统在网络上与他人共享目录和文件。通过使用 NFS，用户和程序可以像访问本地文件一样访问远端系统上的文件。
+
+====说明====
+ 本 NFS 服务器为 CentOS 5.9，CentOS 6 以上请将以下 portmap 改为 rpcbind
+ 服务器：172.16.8.61（Centos 5.9）
+ 客户端：172.16.210.1（OpenVox GSM Gateway）
+
+====服务器配置====
+*安装相关软件
+ yum install portmap nfs-utils
+
+*配置允许访问的主机，编辑文件 /etc/hosts.allow
+ [~]# vim /etc/hosts.allow
+ #
+ # hosts.allow   This file contains access rules which are used to
+ #               allow or deny connections to network services that
+ #               either use the tcp_wrappers library or that have been
+ #               started through a tcp_wrappers-enabled xinetd.
+ #
+ #               See 'man 5 hosts_options' and 'man 5 hosts_access'
+ #               for information on rule syntax.
+ #               See 'man tcpd' for information on tcp_wrappers
+ #
+ portmap:172.16.210.1
+
+*配置拒绝访问的主机，编辑文件 /etc/hosts.deny
+ [~]# vim /etc/hosts.deny
+ #
+ # hosts.deny    This file contains access rules which are used to
+ #               deny connections to network services that either use
+ #               the tcp_wrappers library or that have been
+ #               started through a tcp_wrappers-enabled xinetd.
+ #
+ #               The rules in this file can also be set up in
+ #               /etc/hosts.allow with a 'deny' option instead.
+ #
+ #               See 'man 5 hosts_options' and 'man 5 hosts_access'
+ #               for information on rule syntax.
+ #               See 'man tcpd' for information on tcp_wrappers
+ #
+ portmap:ALL
+
+*配置共享目录信息，编辑文件 /etc/exports
+ [~]# vim /etc/exports
+ /nfs_share 172.16.210.1(rw,sync,all_squash,anonuid=0,anongid=0)
+
+*使共享目录设置生效
+ [~]# exportfs -r
+ [~]# exportfs
+ /nfs_share	172.16.210.1
+
+*启动NFS服务
+ [~]# service portmap restart
+ Stopping portmap:                                          [  OK  ]
+ Starting portmap:                                          [  OK  ]
+ [~]# service nfs restart
+ Shutting down NFS mountd:                                  [  OK  ]
+ Shutting down NFS daemon:                                  [  OK  ]
+ Shutting down NFS quotas:                                  [  OK  ]
+ Shutting down NFS services:                                [  OK  ]
+ Starting NFS services:                                     [  OK  ]
+ Starting NFS quotas:                                       [  OK  ]
+ Starting NFS daemon:                                       [  OK  ]
+ Starting NFS mountd:                                       [  OK  ]
+ Stopping RPC idmapd:                                       [  OK  ]
+ Starting RPC idmapd:                                       [  OK  ]
+
+====客户端配置====
+
+*查看 NFS 共享情况
+ [~]# showmount -e 172.16.8.61
+ Export list for 172.16.8.61:
+ /nfs_share 172.16.210.1
+
+*挂载 NFS
+ root@Openvox-Wireless-Gateway:~# cd /etc/asterisk/
+ root@Openvox-Wireless-Gateway:~/memcfg/etc/asterisk# mkdir nfs
+ root@Openvox-Wireless-Gateway:~/memcfg/etc/asterisk# mount -o nolock -t nfs 172.16.8.61:/nfs_share nfs
+
+*测试挂载的 NFS
+ 1、服务器端
+ root@Openvox-Wireless-Gateway:~/memcfg/etc/asterisk/nfs# cd nfs
+ root@Openvox-Wireless-Gateway:~/memcfg/etc/asterisk/nfs# echo "hello world" > hello.txt
+ root@Openvox-Wireless-Gateway:~/memcfg/etc/asterisk/nfs# pwd
+ /etc/asterisk/nfs
+ 2、客户端
+ [~]# cd /nfs_share
+ [~]# ls
+ hello.txt
+ [~]# cat hello.txt
+ hello world
+ [~]# pwd
+ /nfs_share
+
+*客户端卸载 NFS
+ root@Openvox-Wireless-Gateway:~# cd /etc/asterisk/
+ root@Openvox-Wireless-Gateway:~/memcfg/etc/asterisk# umount nfs
+ root@Openvox-Wireless-Gateway:~/memcfg/etc/asterisk# ls nfs
+ root@Openvox-Wireless-Gateway:~/memcfg/etc/asterisk#
+
+====常见问题====
+ Q: mount: 172.16.8.88:/root failed, reason given by server: Permission denied
+ A: 编辑 /etc/exportfs: all_squash,anonuid=0,anongid=0
+
+ Q: mount clntudp_create : RPC Program not registered
+ A: 编辑 /etc/hosts.allow: portmap:172.16.8.88
+
+ Q: mount: mount to NFS server '172.16.8.88' failed: System Error: No route to host.
+ A: 服务器开启防火墙：service iptables start
+
+ Q: /usr/sbin/start-statd: line 8: systemctl: command not found
+ Q: mount.nfs: rpc.statd is not running but is required for remote locking.
+ Q: mount.nfs: Either use '-o nolock' to keep locks local, or start statd.
+ Q: mount.nfs: an incorrect mount option was specified
+ A: client: mount -o nolock -t nfs 172.16.8.61:/root nfs
+ A:               |-------|
+
+====参数解释====
+
+=====/etc/exports=====
+ Directory Client_IP(rw,sync,all_squash,anonuid=0,anongid=0)
+ 1. rw: read and write
+ 2. sync: sync your change to disk
+ 3. all_squash: all users chage to nobody
+ 4. anonuid: allow uid
+ 5. anongid: allow gid
+
+ [~] id root
+ uid=0(root) gid=0(root) groups=0(root),1(bin),2(daemon),3(sys),4(adm),6(disk),10(wheel)

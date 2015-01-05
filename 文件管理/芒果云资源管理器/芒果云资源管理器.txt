@@ -1,0 +1,7 @@
+===KODExplorer===
+
+====安装问题====
+
+*无法保存配置（用户名、密码等）
+ cd kodexplorer2.73
+ sudo chmod -R 0777 data

@@ -1,0 +1,20 @@
+'''已成功安装MediaWiki。'''
+
+请查阅[//meta.wikimedia.org/wiki/Help:Contents 用户指南]以获取使用本wiki软件的信息！
+
+==我的 Wiki==
+*[[VoIP|VoIP]]
+*[[HTPC|HTPC相关]]
+*[[Wiki|知识库管理]]
+*[[FileSystem|文件管理]]
+*[[ProjectManager|项目管理]]
+*[[NetworkManager|网络管理]]
+*[[MindMap|思维导图]]
+*[[OAOffice|OA 办公系统]]
+*[[OS|操作系统]]
+
+== 入门 ==
+* [//www.mediawiki.org/wiki/Manual:Configuration_settings MediaWiki配置设置列表]
+* [//www.mediawiki.org/wiki/Manual:FAQ/zh-hans MediaWiki常见问题]
+* [https://lists.wikimedia.org/mailman/listinfo/mediawiki-announce MediaWiki发布邮件列表]
+* [//www.mediawiki.org/wiki/Localisation#Translation_resources 本地化MediaWiki到您的语言]

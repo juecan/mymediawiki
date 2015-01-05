@@ -1,0 +1,16 @@
+==HTPC==
+
+===硬件===
+　　PC主机 + 投影仪/显示器 + 电视卡 + 遥控
+
+===软件===
+
+　　Mythbuntu、XBMC + Xubuntu、OpenELEC
+
+　　挑选合适硬件组装HTPC
+
+*[[OpenELEC|OpenELEC]]
+
+===功能===
+
+　　自动挂载Windows分区、自动挂载U盘/硬盘/光盘、自动扫描音视频数据

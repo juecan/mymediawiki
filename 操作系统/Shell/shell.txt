@@ -1,0 +1,73 @@
+===Shell===
+
+*[[HardwareDetect|硬件检测]]
+
+====更新系统时间====
+ #!/bin/bash
+ # Author: 邹华龙
+ # 确保时区正确：
+ # /etc/sysconfig/clock：
+ #	ZONE="Asia/Shanghai"
+ #	tUTC=true
+ #	ARC=false
+ function update_sys_time()
+ {
+ 	# 关闭 ntpd 服务
+ 	service ntpd stop
+ 	cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+ 	# 联网更新时间
+ 	ntpdate asia.pool.ntp.org
+ 	#ntpdate us.pool.ntp.org
+ 	# 同步 BIOS 时间
+ 	hwclock -w
+ 	# 校准后开启 ntpd 服务
+ 	service ntpd start
+ }
+ echo "更新前："
+ echo -ne "\t系统时间：" && date
+ echo -ne "\tBIOS 时间：" && hwclock -r
+ update_sys_time
+ echo "更新后："
+ echo -ne "\t系统时间：" && date
+ echo -ne "\tBIOS 时间：" && hwclock -r
+
+====生成补丁与打补丁====
+ #!/bin/bash
+ # 原始文件
+ SRC=$1
+ # 修改后的文件
+ DST=$2
+ # 补丁文件
+ PATCH_FILE=$3
+ # 生成补丁文件
+ diff -Nur ${SRC} ${DST} > ${PATCH_FILE}
+ # 打补丁
+ patch -p1 < ${PATCH_FILE}
+
+*判断目录是否存在，不存在则创建该目录
+ if [ ! -d "${path}" ]
+ then 
+ 	mkdir -p "${path}" 
+ fi
+
+* 检查是否为 root 用户
+ # root用户权限UID       ROOT_UID
+ # 非root用户退出码      E_NOTROOT
+ function check_root()
+ {
+ 	ROOT_UID=0
+ 	E_NOTROOT=67
+ 
+ 	if [ "$UID" -ne "$ROOT_UID" ]
+ 	then
+ 		echo "必须拥有 root 权限才可以执行！"
+ 		exit $E_NOTROOT
+ 	fi
+ }
+
+*检查参数个数
+ if [ $# != 1 ]
+ then
+ 	echo "Usage: $0 start|stop|restart"
+ 	exit 1
+ fi

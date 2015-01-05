@@ -1,0 +1,21 @@
+===win7 远程桌面连接 Ubuntu Kylin14.04===
+
+====Ubuntu Kylin 下的操作====
+
+#首先，Win7 远程连接上 Ubuntu Kylin，所使用的协议是 rdp，需要安装 xrdp 和 tightvncserver：
+ sudo apt-get install xrdp tightvncserver
+#远程桌面设置：Dash - “桌面共享” - “允许其他人查看您的桌面”和“允许其他用户控制您的桌面”
+#由于服务端的加密格式与客户端加密格式不兼容，需要关掉服务器端的加密方式：
+
+ 1、安装 dconf-editor：sudo apt-get install dconf-editor
+ 2、打开 dconf-editor，并访问：org > gnome > desktop > applications > remote-access
+ 3、取消钩选 "REQUIRE-ENCRYPTION"属性，即可在windows下用UltraVNC Viewer正常连接
+ 4、如需要修改 Ubuntu 14.04 的桌面共享端口号：先钩选 enabled 和 use_alternative_port，再修改右边 alternative_port 属性。（默认是5900） 
+
+====Windows7下的操作====
+ 1. 打开“远程桌面连接”：运行 - mstsc - “计算机”- Ubuntu Kylin IP
+ 2. 选择“vnc-any”- Ubuntu Kylin IP - 用户名 - 密码
+
+====注意====
+ 1. 如果在 Ubuntu Kylin 系统桌面共享中选择了“必须为本机器的每次访问进行确认”，会在 Ubuntu Kylin 系统桌面会弹出是否允许连接的窗口，点击“允许”按钮即可连接成功。
+ 2. 如果您没有在Ubuntu Kylin系统桌面共享中设置“必须为本机器的每次访问进行确认”，则可以直接连接成功！

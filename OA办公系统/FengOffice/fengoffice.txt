@@ -1,0 +1,10 @@
+===FengOffice===
+
+*安装
+ [fengoffice_2.7.1.1]$ chmod o+w config cache upload tmp
+
+*更改语言
+ 登录前：Options - Language - 简体中文
+
+*智能语言修改
+ http://SERVER_IP/fengoffice/public/tools

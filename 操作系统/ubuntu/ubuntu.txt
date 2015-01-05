@@ -1,0 +1,78 @@
+===Ubuntu===
+
+====添加 PPA====
+ Wine PPA 为：ubuntu-wine/ppa
+ 添加 PPA 为：sudo add-apt-repository ppa:ubuntu-wine/ppa
+
+====添加更新源====
+ 如添加 NVIDIA GTX760M、bumblebee 的更新源：将下面两行文字复制到 /etc/apt/sources.list
+ deb http://ppa.launchpad.net/xorg-edgers/ppa/ubuntu trusty main
+ deb-src http://ppa.launchpad.net/xorg-edgers/ppa/ubuntu trusty main
+
+====清除下载的文件====
+ sudo apt-get autoclean
+ sudo apt-get clean
+
+====制作 ubuntu 离线安装源====
+ #!/bin/bash
+ NAME=$1
+ SOURCE_DIR=/home/along/sources_packages
+ cd ${SOURCE_DIR}
+ cp -r /var/cache/apt/archives ${NAME}
+ dpkg-scanpackages ${NAME} /dev/null | gzip > ${NAME}/Packages.gz
+ echo "deb file://${SOURCE_DIR} ${NAME}/" >> ${SOURCE_DIR}/sources.list.local
+
+====环境变量====
+*修改当前用户
+ [~]$ vim .bashrc
+ 117 export PATH=$PATH:/home/along/bin
+ [~]$ . .bashrc
+*修改系统
+ [~]$ sudo vim /etc/environment
+
+====SSH====
+*运行、停止
+ [~]$ sudo service ssh start
+ [~]$ ps -ef | grep ssh
+ along     3288  3226  0 20:01 ?        00:00:00 ssh-agent -s
+ root      6592     1  0 20:27 ?        00:00:00 /usr/sbin/sshd -D
+ along     6611  4479  0 20:28 pts/1    00:00:00 grep --color=auto ssh
+
+ [~]$ sudo service ssh stop
+ [~]$ ps -ef | grep ssh
+ along     3288  3226  0 20:01 ?        00:00:00 ssh-agent -s
+ along     6650  4479  0 20:28 pts/1    00:00:00 grep --color=auto ssh
+
+*更改端口
+ [~]$ sudo vim /etc/ssh/sshd_config
+ # What ports, IPs and protocols we listen for
+ #Port 22
+ Port 6023
+ [~]$ sudo /etc/init.d/ssh restart
+
+==== 问题收集 ====
+
+*cairo-dock 引起的图形按钮（注销/重启/关机）不能使用
+
+ sudo gedit  /usr/lib/x86_64-linux-gnu/cairo-dock/cairo-dock-launcher-API-daemon
+ 第 32 行 "from os import popen, getpid"下面添加"from time import sleep"
+ 在倒数第一行 ULWatcher() 的上面添加 sleep(5)
+
+*使用 BootUP Manager 添加 lightdm 自启动后无法启动 lightdm 进入登陆界面
+
+ 进入文本模式，sudo sysv-rc-conf，取消 lightdm 所有勾选
+
+*无法使用 virtualbox
+
+ sudo /etc/init.d/virtualbox start
+
+*更新源（尤其是 PPA 源或其他第三方源）时缺少公钥
+ 如：W: GPG error: http://ppa.launchpad.net jaunty Release: 由于没有公钥，下列签名无法进行验证： NO_PUBKEY 06EA41DE4F6C1E86
+ NO_PUBKEY后面的一串东西就是缺少的公钥的ID。
+ 方法：
+ 	sudo apt-key adv --keyserver keyserver.ubuntu.com --recv ID（将ID替换为公钥ID的后8位）
+ 	如果有多个公钥：
+ 	sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ID1 ID2
+
+ keyserver.ubuntu.com 是针对 LAUNCHPAD 上的 PPA 源的，基本上所有 PPA 源的公钥都可以从上面找到
+ 如果找不到的话，就换成 subkeys.pgp.net（这个服务器速度会慢一些）

@@ -1,0 +1,144 @@
+===SIP 对接===
+
+====关于 type====
+ type=friend
+ 	表明对端是 friend
+ 	本 SIP 可以呼叫、接收（Make calls and receive calls）
+ type=peer
+ 	表明对端是 peer
+ 	本 SIP 可以呼叫（Make calls）
+ type=user
+ 	表明对端是 user
+ 	本 SIP 可以接收（Receive calls）
+ 	必须注册到对端类型为 peer 或 friend 的服务器上（You must register to sip server where type=peer or type=friend）
+
+====本端配置====
+*sip.conf
+ ; This is sip configuration file of 172.16.8.88
+ ; 使用 SIP 软电话注册（Use a SIP phone to register）
+ [88001]
+ type=friend
+ host=dynamic
+ username=88001
+ secret=88001
+ context=from-internal
+ 
+ ; 8.88 <-> 8.61
+ ; 非注册方式（not register）
+ ; 可以呼叫 8.61，也可以接收 8.61 的呼叫（can call to 8.61, also can receive call from 8.61）
+ [10001]
+ type=friend
+ host=172.16.8.61
+ username=10001
+ secret=10001
+ fromuser=10001
+ insecure=invite
+ context=sip-sip
+ 
+ ; 注册方式，两端都是 friend（register, both friend）
+ ; 可以呼叫 8.61，也可以接收 8.61 的呼叫（can call to 8.61, also can receive call from 8.61）
+ [10002]
+ type=friend
+ host=dynamic
+ username=10002
+ secret=10002
+ context=sip-sip
+ 
+ ; 注册方式，本端为 peer，对端为 user（register, peer <-> user）
+ ; 可以呼叫 8.61，但不可以接收 8.61 的呼叫（can call to 8.61, but can not receive call from 8.61）
+ [10003]
+ type=peer
+ host=dynamic
+ username=10003
+ secret=10003
+ context=sip-sip
+ 
+ ; 注册方式，本端为 user，对端为 peer（register, user <-> peer）
+ ; 可以接收 8.61 的呼叫，但不可以呼叫 8.61（can receive call from 8.61, but can not call to 8.61）
+ ; 需要在 [general] 填写注册信息（in [general]: ）register => 10004:10004@172.16.8.61
+ [10004]
+ type=user
+ host=172.16.8.61
+ username=10004
+ secret=10004
+ context=sip-sip
+
+*extensions.conf
+ ; 使用注册的 88001 进行呼叫
+ [from-internal]
+ ;exten => _X.,1,Dial(SIP/23000/${EXTEN})
+ ;exten => _X.,1,Dial(SIP/10001/${EXTEN})
+ ;exten => _X.,1,Dial(SIP/10002/${EXTEN})
+ ;exten => _X.,1,Dial(SIP/10003/${EXTEN})
+ exten => _X.,1,Dial(SIP/10004/${EXTEN})
+ exten => _X.,n,Hangup()
+ 
+ [sip-sip]
+ exten => _X.,1,Dial(SIP/88001/${EXTEN})
+ exten => _X.,n,Hangup()
+
+====对端配置====
+*sip.conf
+ ; This is sip configuration file of 172.16.8.61
+ ; 使用 SIP 软电话注册（Use a SIP phone to register）
+ [61001]
+ type=friend
+ host=dynamic
+ username=61001
+ secret=61001
+ context=from-61001
+ 
+ ; 8.61 <-> 8.88
+ ; 非注册方式（not register）
+ ; 可以呼叫 8.88，也可以接收 8.88 的呼叫（can receive call from 8.88, also can call to 8.88）
+ [10001]
+ type=friend
+ host=172.16.8.88
+ username=10001
+ secret=10001
+ fromuser=10001
+ insecure=invite
+ context=sip-sip
+ 
+ ; 注册方式，两端都是 friend（register, both friend）
+ ; 可以呼叫 8.88，也可以接收 8.88 的呼叫（can receive call from 8.88, also can call to 8.88）
+ ; 需要在 [general] 填写注册信息（in [general]: ）register => 10002:10002@172.16.8.88
+ [10002]
+ type=friend
+ host=172.16.8.88
+ username=10002
+ secret=10002
+ context=sip-sip
+ 
+ ; 注册方式，本端为 user，对端为 peer（register, user <-> peer）
+ ; 可以接收 8.88 的呼叫，但不可以呼叫 8.88（can receive call from 8.88, but can not call to 8.88）
+ ; 需要在 [general] 填写注册信息（in [general]: ）register => 10003:10003@172.16.8.88
+ [10003]
+ type=user
+ host=172.16.8.88
+ username=10003
+ secret=10003
+ context=sip-sip
+ 
+ ; 注册方式，本端为 peer，对端为 user（register, peer <-> user）
+ ; 可以呼叫 8.88，但不可以接收 8.88 的呼叫（can call to 8.88, but can not receive call from 8.88）
+ [10004]
+ type=peer
+ host=dynamic
+ username=10004
+ secret=10004
+ context=sip-sip
+
+*extensions.conf
+ ; 使用注册的 61001 进行呼叫
+ [from-61001]
+ ;exten => _X.,1,Dial(SIP/10001-172.16.8.88/${EXTEN})
+ ;exten => _X.,1,Dial(SIP/10001/${EXTEN})
+ ;exten => _X.,1,Dial(SIP/10002/${EXTEN})
+ ;exten => _X.,1,Dial(SIP/10003/${EXTEN})
+ exten => _X.,1,Dial(SIP/10004/${EXTEN})
+ exten => _X.,n,Hangup()
+ 
+ [sip-sip]
+ exten => _X.,1,Dial(SIP/61001/${EXTEN})
+ exten => _X.,n,Hangup()

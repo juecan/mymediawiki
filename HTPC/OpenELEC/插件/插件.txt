@@ -1,0 +1,70 @@
+=== 插件 ===
+
+==== 插件库 ====
+
+ [https://github.com/taxigps/xbmc-addons-chinese https://github.com/taxigps/xbmc-addons-chinese]
+ [http://xbmc-addons-chinese.googlecode.com/svn/addons/dharma_src/ http://xbmc-addons-chinese.googlecode.com/svn/addons/dharma_src/]
+ [http://xbmc-addons-chinese.googlecode.com/svn/addons/eden_src/ http://xbmc-addons-chinese.googlecode.com/svn/addons/eden_src/]
+
+====插件====
+
+[http://cdn.fr.serverst.at/ http://cdn.fr.serverst.at/]
+
+Storage System
+
+===== 皮肤 =====
+
+*支持中文
+
+ XBMC.org Add-ons
+
+ 竖版：
+ 	skin.pm3-hd
+ 	skin.hybrid
+ 	skin.re-touched
+ 	skin.ace（DEFAULT/ORARIENBAUM）
+ 	skin.cirrus.extended（Arial）
+ 	skin.conq（Arial）
+ 	skin.hybrid（Arial）
+ 	skin.refocus（UNICODE）
+ 	skin.transparency（Arial）
+
+ 横版：
+ 	skin.amber（Arial Based）（竖）
+ 	skin.back-row（Arial）
+ 	skin.quartz（Arial Based）
+ 	skin.rapier（Arial）
+
+ 横 + 竖：skin.xtv-saf（XBMC 默认字体）
+
+ 横表：skin.xperience1080
+
+ 图表： skin.sio2
+
+*半中文
+
+ skin.nbox
+
+*不支持中文
+
+ skin.aeonmq5
+ skin.bello
+ skin.carmichael
+ skin.droid
+ skin.diffuse
+ skin.eminence
+ skin.aeonmq5
+ skin.re-touched
+ skin.aeon.nox.5
+ skin.maximinimalism
+ skin.amber
+ skin.metroid
+ skin.titan
+ skin.metropolis
+ skin.bello
+ skin.nebula
+ skin.blackglassnova
+ skin.neon
+
+ xbmc-addons-chinese
+ 	script.skinfont

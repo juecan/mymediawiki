@@ -1,0 +1,24 @@
+===Linux + Firefox + Goagent 翻墙
+
+ 使用 Gmail 账号申请注册一个 Google App Engine 账号 [https://appengine.google.com https://appengine.google.com]
+ 转入 “My Applications” 页面，点击 “Create an Application” 新建应用
+
+ 下载 Python 版的 Google App Engine SDK （[https://developers.google.com/appengine/downloads?hl=zh-CN#Google_App_Engine_SDK_for_Python），并解压成 https://developers.google.com/appengine/downloads?hl=zh-CN#Google_App_Engine_SDK_for_Python），并解压成] google_appengine
+
+ 下载 goagent（[https://code.google.com/p/goagent/）并解压成 https://code.google.com/p/goagent/）并解压成] goagent，移动到 google_appengine
+ 修改 appid
+ 	[google_appengine]$ vim goagent/local/proxy.ini
+ 	  9 [gae]
+ 	 10 enable = 1
+ 	 11 appid = along-free
+ 	[google_appengine]$ vim goagent/server/gae/app.yaml
+ 	  1 application: along-free
+
+ 执行上传：
+ 	[google_appengine]$ python appcfg.py update goagent/server/gae
+ 	输入Gmail 账号、应用专用密码
+ 		（Google 账户 - 账户设置 - 安全性 - 两步验证 - along-free 专用密码）
+
+ 配置 Firefox
+ 	火狐浏览器 - 安装 AutoProxy 插件 - 右键点击插件图标 - 首选项 - 代理服务器 - 编辑代理服务器 - 添加代理 - goagent - 127.0.0.1 - 8087
+ 使用时在 goagent/local 下执行 python proxy.py，然后打开火狐即可

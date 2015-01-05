@@ -1,0 +1,73 @@
+=== MediaWiki ===
+
+==== MediaWiki 使用方法 ====
+
+==== 用 IP 访问 mediawiki ====
+
+修改 LocalSettings.php 文件
+
+ #$wgServer = "[http://localhost http://localhost]";
+ $wgServer = "http://" . $_SERVER["SERVER_NAME"];
+
+===== 修改侧边栏 =====
+
+*搜索侧边栏
+
+ 1. [http://YOUR_WIKI_SERVER_IP/index.php/MediaWiki:Sidebar http://YOUR_WIKI_SERVER_IP/index.php/MediaWiki:Sidebar]
+ 2. 在“特殊页面”搜索“MediaWiki:Sidebar”
+
+*修改侧边栏
+
+ 1. 新增收缩栏：* 收缩栏名称
+ 2. 新增项目：** 项目链接|项目名
+
+===== 创建标题 =====
+
+ 1. 创建一级标题：*=一级标题=
+ 2. 创建二级标题：*==二级标题==
+ 3. 创建三级标题：*===三级标题===
+ 4. 创建四级标题：*====四级标题====
+
+===== 新增页面 =====
+
+ 1. 当名称与链接目标不同时：[[页面链接名|页面显示名]]
+ 2. 当名称与链接目标相同时：[[链接名]]
+
+===== 符号列表 =====
+
+ 1. *符号列表
+ 2. **行首以（*）开始
+ 3. ***符号越多，表示级别越低
+
+===== 段落 =====
+
+ 用空行开始一个新段落
+ 也可以这样\<br\>强制转行
+
+===== 创建方框 =====
+
+ 行首为空格时，该行会被方框所包含
+
+===== wiki 服务器 =====
+
+ mediawiki（wiki 服务器）+ 树莓派
+
+==== 添加插件 ====
+
+*WYSIWYG
+<pre>1、[https://github.com/Mediawiki-wysiwyg/WYSIWYG-CKeditor https://github.com/Mediawiki-wysiwyg/WYSIWYG-CKeditor] 下载插件
+2、解压：unzip WYSIWYG-CKeditor-CKeditor_v4.zip
+3、安装到 mediawiki：[mediawiki-1.23.4]$ cd ../install_package/WYSIWYG-CKeditor-CKeditor_v4/
+[~]$ cd WYSIWYG-CKeditor-CKeditor_v4
+[WYSIWYG-CKeditor-CKeditor_v4]$ mv WYSIWYG ../mediawiki-1.23.4/extensions/
+4、编辑 LocalSettings.php
+[mediawiki-1.23.4]$ vim LocalSettings.php
+128 # End of automatically generated settings.
+129 # Add more configuration options below.
+130
+131 require_once( "$IP/extensions/WYSIWYG/WYSIWYG.php" );
+132 # for all users
+133 $wgGroupPermissions['*']['wysiwyg']=true;
+134 # or only for registered users
+135 #$wgGroupPermissions['registered_users']['wysiwyg']=true;
+</pre>

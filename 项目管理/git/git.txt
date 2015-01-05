@@ -1,0 +1,67 @@
+=== GIT ===
+
+*搭建 GIT 服务器
+ 1、直接使用 GIT
+ 2、[[GITLAB|GITLAB]]
+
+*配置
+
+ # git config --global user.name "Your name"
+ # git config --global user.email "email@example.com"
+ # cat ~/.gitconfig 
+ [user]
+ 	name = Your name
+ 	email = email@example.com
+
+*创建版本库
+
+ # mkdir project_name
+ # cd project_name
+ # git init
+
+*使用GIT
+
+ 把文件添加到仓库
+ # git add filename
+
+ 提交更改
+ # git commit -m "description of this commit"
+
+ 查看状态
+ # git status
+
+ 查看修改内容
+ # git diff filename
+
+ 查看提交日志
+ # git log
+ # git log --pretty=oneline
+
+ 回退到上一个版本，HEAD 表示最新版本
+ git reset --hard HEAD^
+
+ 回退到上上个版本
+ git reset --hard HEAD^^
+
+ 恢复到某个版本
+ git reset --hard 版本号
+
+ 显示命令记录
+ # git reflog
+
+ 对比最新版本
+ # git diff HEAD -- filename
+
+ 撤销工作区修改至原版本库状态或原暂存区状态
+ # git checkout -- filename
+
+ 撤销暂存区的修改，重新放回工作区
+ # git reset HEAD filename
+
+ 删除文件
+ # rm filename
+ # git rm filename
+ # git commit -m "description of this commit"
+
+ 未提交时可恢复文件
+ # git checkout -- filename

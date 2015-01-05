@@ -1,0 +1,11 @@
+===OpenELEC 系统===
+
+*文件系统
+ root 用户主目录为 storage，可读可写
+ 其他目录均为只读
+
+*SSH 默认用户名密码
+ Username: root
+ Password: openelec
+
+*[[ModifyReadonlySystem|修改只读系统]]

@@ -1,0 +1,46 @@
+以下基于 Ubuntu 系统
+
+=== Apache2 ===
+
+==== 启动 Apache2 ====
+
+ 启动 Web Server：sudo /etc/init.d/apache2 restart
+ 启动 WEB 管理工具：sudo /etc/init.d/webmin restart
+ 登陆 WEB 管理工具：[https://IP:10000/ https://IP:10000/]
+
+==== 配置 Apache2 ====
+
+*默认目录
+
+ sudo vi /etc/apache2/sites-enabled/000-default
+ 	DocumentRoot /var/www/html
+ 	change to "DocumentRoot YOUR_PATH"
+ sudo service apache2 restart
+
+*默认端口
+
+  [~]$ sudo vim /etc/apache2/ports.conf
+ 5 #Listen 80
+ 6 Listen 7073
+ [~]$ sudo vim /etc/apache2/sites-enabled/000-default.conf
+ 1 #<VirtualHost *:80>
+ 2 <VirtualHost *:7073>
+ [~]$ sudo bin/web-server.sh restart
+ [http://localhost/mediawiki:7073/ http://localhost/mediawiki:7073/]
+
+*错误处理
+
+ [~]$ vi /etc/apache2/conf-enabled/localized-error-pages.conf
+ [~]$ vi /etc/apache2/conf-available/localized-error-pages.conf
+
+==== 常见问题 ====
+
+ Q: apache2: Could not reliably determine the server's fully qualified domain     name
+ A: sudo echo "ServerName localhost:80" >> /etc/apache2/apache2.conf
+
+ Q: No such file or directory: AH02291: Cannot access directory '/var/log/apa    che2/' for main error log
+ A: sudo mkdir -p /var/log/apache2
+
+ Q: CentOS 7 启动 httpd 后无法使用 IP 访问，只能通过 localhost
+ A: sudo iptables -I INPUT -p TCP --dport 80 -j ACCEPT
+ A: sudo service httpd restart

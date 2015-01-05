@@ -1,0 +1,81 @@
+=== SSH 端口转发 ===
+
+==== 格式 ====
+
+ [-L [bind_address:]port:host:hostport]
+ [-R [bind_address:]port:host:hostport]
+ [-D [bind_address:]port]
+
+==== 解释 ====
+
+ 主机安装 ssh client(ssh) 和 ssh server(sshd)
+ 客户端：ssh，用于发出连接请求
+ 服务端：sshd，监听端口 22
+ 安全通道：ssh 与 sshd 之间已建立的连接通道，该连接加密
+
+==== 本地端口转发 ====
+*背景
+ 服务器 B 限制了只有本机上部署的应用才能直接连接
+ 需要临时从本地机器 A 直接连接到 B
+
+*用法
+ 需要在 A 上运用本地端口转发
+ A: ssh -L local_port:localhost:host_port B_username@B_ip -p B_ssh_port
+
+*数据流向
+ 1、A 与远程主机 B 建立一个 SSH 安全连接（安全通道）
+ 2、本地主机 A 会监听端口 local_port（注意是 ssh 在监听）
+ 3、一旦本地 A 程序将数据发送到端口 remote_port（即建立连接）
+ 4、远程主机 B 上的 sshd 将主动与端口 host_port 建立连接
+ 5、从而来自 A 的请求转发到该端口 host_port 上（当然是通过安全通道）
+
+*注意
+ 本地主机有两个客户端：
+ 	1）ssh：用于与远程主机建立 ssh 连接
+ 	2）服务程序客户端：用于与远程主机服务程序进行通讯
+ 远程主机 B 对应两个服务进程：
+ 	1）sshd：监听端口 B_ssh_port
+ 	2）服务程序：监听端口 389
+
+==== 远程端口转发 ====
+*背景
+ 由于网络或防火墙的原因我们不能用 SSH 直接从 A 连接到 B，但是反向连接却是被允许的
+ 此时的选择自然是远程端口转发。我们这次在 B 上运用远程端口转发，因此 A 必须安装 sshd
+
+*用法
+ B: ssh -f -N -R remote_port:localhost:host_port A_username@A_ip -p A_ssh_port
+
+*数据流向
+ 1、A 与 B 建立一个 SSH 安全连接（安全通道）
+ 2、A 开始监听端口 remote_port（注意是 sshd 在监听）
+ 3、一旦 A 将数据发送到端口 remote_port（即建立连接）
+ 4、B 上的 ssh 将主动与端口 host_port 建立连接
+ 5、来自 A 的请求转发到该端口 host_port 上（当然是通过安全通道）
+
+==== 本地转发与远程转发的对比与分析 ====
+
+ 本地端口转发：ssh 客户端发起 ssh 连接，并且监听指定端口
+ 远程端口转发：ssh 客户端发起 ssh 连接，但是由远程主机上的 sshd 监听指定端口
+
+ 使用远程端口转发时，本地主机的端口监听并没有发生变化，相反远程主机却开始监听指定的 remote_port 端口
+
+ 小提示：remote_port, local_port 可以归并为 listen_port
+ 因此：ssh [-L|-R] <listen_port>:<host>:<host_port>
+
+==== 动态端口转发 ====
+
+ [-D [bind_address:]port]
+ 使本地主机监听端口 port，一旦与该端口建立连接，经过该端口的数据会被转发到安全通道发送到远程主机
+ 远程主机的 sshd 会根据数据包的应用层协议（如 HTTP）自动建立对应的连接
+
+ $ ssh -D 7070 sisca@216.194.70.6
+
+ 动态端口转发是本地主机的 ssh 在监听端口 7070
+
+==== 多主机转发应用 ====
+
+ A - C <=> D - B
+
+ C: ssh -g -L C_port:B_ip:B_port D_username@D_ip -p D_ssh_port
+
+ 注意：命令中指定了“ -g ”参数以保证机器（A）能够使用机器（C）建立的本地端口转发

@@ -1,0 +1,7 @@
+=== OpenELEC ===
+
+*[[Install|安装]]
+*[[OpenELEC System|OpenELEC 系统]]
+*[[Compile|编译]]
+*[[SouceCode|源码分析]]
+*[[XBMC_Addons|插件]]

@@ -1,0 +1,81 @@
+===Asterisk===
+
+*[[InstallAsterisk|安装 Asterisk]]
+
+*[[chan_dahdi|chan_dahdi.conf]]
+*[[sip.conf|sip.conf]]
+*[[Dialplan|拨号规则]]
+*[[SipToSip|SIP 对接]]
+*[[Sip2Sip|SIP2SIP]]
+
+=====实例=====
+*将通道分成 2 个组，当组 1 打满的时候转到组 2
+ [from-pstn]
+ exten => s,1,Answer()
+ exten => s,2,Playback(demo-instruct)
+ exten => s,n,Hangup()
+ [from-sip-openvox]
+ exten => _181XX,1,Dial(dahdi/g0)
+ exten => _181XX,2,GotoIf($[${DIALSTATUS}=CONGESTION]?3:4)
+ exten => _181XX,3,Dial(dahdi/g1)
+ exten => _181XX,4,Hangup()
+
+ DIALSTATUS 显示的是呼叫的状态，有以下一些值：
+ 	CHANUNAVAIL
+ 	CONGESTION 通道正忙时显示
+ 	NOANSWER
+ 	BUSY
+ 	ANSWER
+ 	CANCEL
+ 	DONTCALL
+ 	TORTURE
+ 	INVALIDARGS
+
+====批量创建 SIP 帐号====
+ #!/bin/bash
+ # Author: 邹华龙
+ SIP_FILE=/etc/asterisk/sip.conf
+ MY_SIP_FILE=/etc/asterisk/sip_openvox.conf
+ CONTEXT=from-sip-openvox
+ # 配置SIP配置文件
+ # set_sip first_sip sip_count
+ function sip_config()
+ {
+  	first=$1
+  	count=$2
+  	for i in `seq ${first} $[${first} + ${count} - 1]`
+  	do
+  	 	echo "[${i}]"
+  	 	echo "type=friend"
+  	 	echo "host=dynamic"
+  	 	echo "username=${i}"
+  	 	echo "secret=${i}"
+   	 	echo "context=${CONTEXT}"
+  	 	echo ""
+ 	done
+ }
+ # 创建SIP账号
+ function set_sip()
+ {
+ 	echo -n "SIP账号初始值；"
+ 	read first_sip
+ 	echo -n "SIP账号个数："
+ 	read sip_count
+ 	echo "" >> ${SIP_FILE}
+ 	echo -e "#include \"${MY_SIP_FILE}\"" >> ${SIP_FILE}
+ 	sip_config ${first_sip} ${sip_count} >> ${MY_SIP_FILE}
+ }
+ set_sip
+
+====常见问题====
+ Q: 软件平台：asterisk 1.4.20 + WinSIP
+ Q: WinSIP 无法注册，有 407 消息
+ A: sip.conf 中 SIP 分机不使用密码
+
+ DAHDI DTMF 检测：
+ 	最常见的问题是运行X Windows系统
+ 	chan_dahdi.conf 里的 relaxdtmf 选项，可能需要打开或关闭
+ 	如果想强行让所有的 DTMF 检测由软件做，你可以在 wctdm24xxp.c 或者 wct4xxp.c 里设置 vpmdtmfsupport 为 0，并且重新编译，或者你可以再运行的时候指定它为内核模块的一个选项
+ SIP 电话发送 DTMF 数字遇到问题
+ 	确认SIP电话里设置的 dtmfmode 和 Asterisk 里面设置的 dtmfmode 一致
+ 	确认没有同时发送 inband 和 out-of-band(rfc2833) 音

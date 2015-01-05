@@ -1,0 +1,29 @@
+===常见问题===
+
+*在文件每行行首插入竖线
+ 将文件内容复制到 Word：Ctrl + h，查找：^p，替换：^p|
+ vim 打开文件：命令 :%s/^/|/g
+
+====系统当机问题====
+*系统当机，重启后提示：
+ Checking filesystems
+ / contains a file system with errors, check forced.
+ /:
+ Inodes that were part of a corrupted orphan linked list found.
+ Kernel alive
+ /: UNEXPECTED INCONSISTENCY; RUN fsck MANUALLY.10000-2a000
+         (i.e., without -a or -p options)
+                                                                                                                         [FAILED]
+ *** An error occurred during the file system check.
+ *** Dropping you to a shell; the system will reboot
+ *** when you leave the shell.
+ Give root password for maintenance
+ (or type Control-D to continue):
+*原因
+ 由于系统部分文件丢失，造成磁盘检测过不去，系统无法启动。
+ 突然断电，系统文件没来得及保存。
+*解决方法：
+ 1、输入 root 密码进入修复模式：
+ 2、运行 fsck.ext2 或 fsck.ext3，根据自己的文件系统决定，如果是其他文件系统，请先 umount：fsck.ext3 /dev/cciss/c0d0p1
+ 3、总共会进行 5 个步骤，全部 y，执行时间和设备中文件数据的大小有关。
+ 4、修复完成后，会出现提示 “FILE SYSTEM WAS MODIFIED”。这时输入命令 "reboot" 命令重启系统。

@@ -1,0 +1,42 @@
+===拨号规则===
+
+====Dial====
+ exten => _X.,1,Dial(dahdi/g1/${EXTEN},,r)
+ exten => 100/34,1,Dial(dahdi/09${EXTEN},,r)
+ 	dahdi：DAHDI 通道
+ 	g：呼叫策略
+ 	1：组 1
+ 	0：表示长途
+ 	9：为传统 PBX 中访问外线的前缀
+ 	100：外拨号码
+ 	34：只允许主叫号码为 34 的分机执行
+
+*DAHDI Dial 参数
+ Dial(DAHDI/pseudo[/extension])
+ Dial(DAHDI/<channel>[c|r<cadance>|d][/extension])
+ Dial(DAHDI/(g|G|r|R)<group(0-63)>[c|r<cadance>|d][/extension])
+
+ 呼叫策略
+ 	g - 向前搜索通道组，并使用第一个可用的（Search forward through channel group and use first available.）
+ 	G - 向后搜索通道组，并使用第一个可用的（Search backward through channel group and use first available.）
+ 	r - 向前轮询搜索通道组，分配下一个（Allocate next in round robin search forward through channel group.）
+ 	R - 向后轮询搜索通道组，分配下一个（Allocate next in round robin search backward through channel group.）
+
+ 	c - 等待 DTMF 码以确认答复（Wait for DTMF digit to confirm answer.）
+ 	r<cadance#> - 设置独特的振铃音调号（Set distintive ring cadance number.）
+ 	d - Force bearer capability for ISDN/SS7 call to digital.
+
+ 通道组
+ 	dahdi/g1/5551212 在通道组一的第一个可用通道上拨 5551212，从最低到最高进行搜索。
+ 	dahdi/G1/5551212 在通道组一的第一个可用通道上拨 5551212，从最高到最低进行搜索。
+ 	dahdi/r1/5551212 在通道组一的第一个可用通道上拨 5551212，以循环方式（并记住它上次离开的位置）从最低到最高进行搜索。
+ 	dahdi/R1/5551212 在通道组一的第一个可用通道上拨 5551212，以循环方式（并记住它上次离开的位置）从最高到最低进行搜索。
+
+ 独特的振铃
+ 	dahdi/4r1 拨打通道 4（可能是一个 FXS 通道），使用独特的振铃方式 1。这里有 4 中独特的振铃方式，你可以用 "r2", "r3" 或 "r4" 代替 "r1"。
+
+ 确认答复
+ 	dahdi/1c/5551212 告诉 Asterisk 在 DAHDI 通道 1 拨打 5551212，不考虑应答呼叫，直到被叫方按＃。这可能是因为该方法模拟信令工作有用。如果没有这个设置，Asterisk会考虑在一个 FXO 口呼出任何模拟呼叫，一旦它拨号，就会立即回答。
+
+ 数字拨号
+ 	dahdi/1d/5551212 告诉 Asterisk 在 DAHDI 通道 1 拨打 5551212，并且它是一个数字拨号。当拨打 ISDN 电话设置承载能力时非常有用。

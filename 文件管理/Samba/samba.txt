@@ -1,0 +1,97 @@
+===Samba===
+
+Samba 服务器信息
+ IP: 172.16.8.61
+ OS: CentOS release 5.9 (Final)
+
+安装软件
+ yum install samba samba-swat
+
+配置 samba-swat
+ [~]# vi /etc/xinetd.d/swat 
+ # default: off
+ # description: SWAT is the Samba Web Admin Tool. Use swat \
+ #              to configure your Samba server. To use SWAT, \
+ #              connect to port 901 with your favorite web browser.
+ service swat
+ {
+         port            = 901
+         socket_type     = stream
+         wait            = no
+         only_from       = 127.0.0.1
+         '''only_from       = 172.16.0.0'''
+         user            = root
+         server          = /usr/sbin/swat
+         log_on_failure  += USERID
+         '''disable         = no'''
+ }
+
+配置防火墙
+ [~]# vi /etc/sysconfig/iptables
+  -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 445 -j ACCEPT　 ← 找到此行，在下面添加如下行：
+  -A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 901 -j ACCEPT　 ← 添加此行开放SWAT的901端口
+
+准备账号（Samba 账号需与系统账号一致）
+ [~]# useradd -m openvox
+ [~]# passwd openvox
+ [~]# smbpasswd -a openvox
+
+创建共享目录
+ [~]# mkdir -p /samba_share/openvox
+ [~]# chown openvox /samba_share/openvox
+ [~]# chgrp openvox /samba_share/openvox
+ [~]# chmod 755 /samba_share/openvox
+
+登陆 Samba Web 管理界面
+ 1. Web 浏览器输入进入 172.16.8.61:901
+ 2. Globals
+ 	workgroup = WORKGROUP
+ 	security = user
+ 	hosts allow = 172.16.8.180/24
+ 	hosts deny =
+ 	log file =
+ 3. Shares
+ 	Create Share: openvox
+ 	comment = openvox share
+ 	path = /samba_share/openvox
+ 	valid users = openvox
+ 	admin users = openvox
+ 	read users = openvox
+ 	write users = openvox
+ 	read only = no
+ 	guest ok = no
+ 	browseable = yes
+
+相应的 smb.conf 配置
+ [global]
+         server string = Samba Server Version %v
+         passdb backend = tdbsam
+         log file = /var/log/samba/%m.log
+         hosts allow = 172.16.8.180/24
+ [homes]
+         comment = Home Directories
+         read only = No
+ [public]
+         comment = public share
+         path = /samba_share/public
+         read only = No
+         guest ok = Yes
+ [openvox]
+         comment = openvox share
+         path = /samba_share/openvox
+         valid users = openvox
+         admin users = openvox
+         read list = openvox
+         write list = openvox
+         read only = No
+
+重启 Samba
+ Status - Restart All
+
+在 Windows 中登陆 Samba
+ Win + R - \\172.16.8.61
+
+在 Windows 中清除登陆记录
+ Win + R - cmd
+ net use
+ net use * /delete

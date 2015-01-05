@@ -1,0 +1,50 @@
+===CentOS===
+
+====禁用 Selinux====
+*永久启用/禁用 selinux
+ SELINUX=disable    禁用SeLinux
+ SELINUX=enforcing  使用SeLinux
+ vim /etc/selinux/config     //把SELINUX=enforcing改成 SELINUX=disabled
+ vim /etc/sysconfig/selinux  //把SELINUX=enforcing改成 SELINUX=disabled
+
+*临时禁用 selinux：
+ setenforce 0
+
+*禁用 selinux：卸载 selinux-policy-targeted
+
+====改变运行级别====
+
+*CentOS 7 以下
+ [~]# vi /etc/inittab
+ id:3:initdefault:
+
+*说明
+ 0 - halt (Do NOT set initdefault to this)
+ 1 - Single user mode
+ 2 - Multiuser, without NFS (The same as 3, if you do not have networking)
+ 3 - Full multiuser mode
+ 4 - unused
+ 5 - X11
+ 6 - reboot (Do NOT set initdefault to this)
+
+*CentOS 7 运行级别切换
+ [~]# ls -ltr /lib/systemd/system/runlevel*
+ lrwxrwxrwx. 1 root root 13 7月 30 14:22 /lib/systemd/system/runlevel1.target -> rescue.target
+ lrwxrwxrwx. 1 root root 15 7月 30 14:22 /lib/systemd/system/runlevel0.target -> poweroff.target
+ lrwxrwxrwx. 1 root root 17 7月 30 14:22 /lib/systemd/system/runlevel2.target -> multi-user.target
+ lrwxrwxrwx. 1 root root 17 7月 30 14:22 /lib/systemd/system/runlevel3.target -> multi-user.target
+ lrwxrwxrwx. 1 root root 17 7月 30 14:22 /lib/systemd/system/runlevel4.target -> multi-user.target
+ lrwxrwxrwx. 1 root root 16 7月 30 14:22 /lib/systemd/system/runlevel5.target -> graphical.target
+ lrwxrwxrwx. 1 root root 13 7月 30 14:22 /lib/systemd/system/runlevel6.target -> reboot.target
+ 设置命令行级别方法
+ [~]# ln -sf /lib/systemd/system/runlevel3.target /etc/systemd/system/default.target
+ 或
+ [~]# ln -sf /lib/systemd/system/multi-user.target /etc/systemd/system/default.target
+ 或
+ [~]# systemctl set-default multi-user.target
+ 设置窗口级别方法:
+ [~]# ln -sf /lib/systemd/system/runlevel5.target /etc/systemd/system/default.target
+ 或
+ [~]# ln -sf /lib/systemd/system/graphical.target /etc/systemd/system/default.target
+ 或
+ [~]# systemctl set-default graphical.target

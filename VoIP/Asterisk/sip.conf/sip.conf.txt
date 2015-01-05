@@ -1,0 +1,500 @@
+===sip.conf===
+
+ extensions.conf 中使用 sip 设备的语法：SIP/device_name
+  	如果用户在Internet上：SIP/username@domain，同时不要忘记打开 DNS SRV 功能。
+  	如果定义了一个 SIP 代理：SIP/proxyhostname/user 或者 SIP/user@proxyhostname 形式
+  
+  CLI 命令:
+  	sip show peers		显示所有的 SIP peers（包括 friends）
+  	sip show users                    	显示所有的 SIP users（包括 friends）
+  	sip show registry          	显示注册到的主机状态
+  	sip debug                     	显示所有的 Sip 信息
+  	module reload chan_sip.so  	重新装载 sip 的配置文件
+  
+  Asterisk 处理呼入电话：
+  1）Asterisk 取出 SIP From: address 中的 username，使用它来匹配系统中定义的 type=user 的设备名。
+  2）Asterisk 检查 INVITE 请求中的 IP 地址和端口号，使用它来匹配系统中定义的 type=peer 的设备。
+  
+  不要混淆 extensions 和设备名的概念：
+  	设备需要一个唯一的名字。设备名不能用于电话号码。
+  	电话号码是拨号计划中的声明的一个 extension。
+  
+  注意：参数 username 并不是用户名的意思，在大多数情况下，它根本不是必须的。
+  
+  通用属性说明
+  [general]			; 通用属性，所有用户和对端的默认选项
+  context=default		; 呼入电话默认使用的拨号方案
+  allowguest=no		; 允许或拒绝客户呼叫（默认 yes）
+  allowoverlap=no		; 允许重叠拨号（默认yes）
+  allowtransfer=no		; 允许呼叫转接（默认yes）
+  
+  realm=mydomain.tld	; 认证的领域
+  ;	默认是 asterisk，如果在 asterisk.conf 中设置了系统名称，该值就会默认成系统的名称
+  ;	realms 设置必须全局唯一。一般可以设置为主机名或域名。
+  
+  bindport=5060		; asterisk 监听的本地端口号
+  			; SIP 标准端口号 5060
+  bindaddr=0.0.0.0		; 绑定的 IP 地址（0.0.0.0 表示所有地址），即监听所有过来的电话
+  
+  srvlookup=yes		; 打开外呼的 DNS SRV 查找，使用 DNS 服务
+  			; 建立一个逻辑和可解析地址的方法，你可以达到这个地址，还可以获取 DNS 很多好处
+  
+  ; 注意，asterisk 仅使用 SRV 记录中的第一个主机。该功能可以在拨号计划中使用 SIP/username@domain 形式通过域名拨打 Internet 上的 SIP 电话。
+  
+  pedantic=yes		; 打开头信息中 tags 值检测，URIs 和多行格式化头信息中国际字符转换等
+  ;	严格的SIP兼容性问题。(默认是no)
+  
+  ; 关于 TOS 参数，可以参考 doc/ip-tos.txt
+  tos_sip=cs3		; Sets TOS for SIP packets.
+  tos_audio=ef		; Sets TOS for RTP audio packets.
+  tos_video=af41		; Sets TOS for RTP video packets.
+  
+  maxexpiry=3600		; 注册和订阅的最大间隔-秒
+  minexpiry=60		; 注册和订阅的最大间隔-秒(默认 60)
+  defaultexpiry=120		; 默认注册间隔的时长
+  
+  t1min=100		; 消息到达录音服务器的最小折返时间，默认 100 ms
+  notifymimetype=text/plain	; 修改在通知中消息 MWI NOTIFY 的 mime 类型
+  checkmwi=10		; peer 检测语音邮箱的时间间隔
+  buggymwi=no		; Cisco SIP 防火墙不完全支持 MWI RFC。打开该选项时，向电话发送 MWI 时，也不会收到错误信息
+  
+  vmexten=<string>		; 拨号规则扩展到邮箱
+  ;	可以使指定为全局的，也可以对单个 user 或 peer 设置
+  ;vmexten=voicemail	; 语音邮箱在拨号计划中的 extension。用来设置 MWI 通知消息中的 Message-Account 信息，默认是 asterisk
+  
+  disallow=all		; 屏蔽所有编码
+  ;	可以使指定为全局的，也可以对单个 user 或 peer 设置
+  allow=<codec>		; 按优先级的顺序允许编解码器，文档 doc/rtp-packetization
+  ;	可以使指定为全局的，也可以对单个 user 或 peer 设置
+  
+  mohinterpret=default
+  ; 呼叫等待音乐的默认项
+  ;	如果没有在拨号计划中使用Set(CHANNEL(musicclass)=whatever) 指定通道的呼叫等待音乐首选项，将会使用该值
+  ;	这个选项可以使指定为全局的，也可以对单个 user 或 peer 设置
+   
+  mohsuggest=default	; 呼叫等到时，建议通道播放的等待音乐
+  ;	可以使指定为全局的，也可以对单个 user 或 peer 设置
+  
+  language=en		; 设置所有 users/peers 的语言
+  ;	可以使指定为全局的，也可以对单个 user 或 peer 设置
+  ;	这对于一个在 Asterisk SIP 帐户配置选项指定语言设置为这个客户端使用
+  ;	通过使用此设置，您可能会得到本地化的声音在为不同的用户不同的语言提示。
+  
+  relaxdtmf=yes		; 宽松 dtmf 处理
+  
+  sendrpid=yes|no		; 是否发送远端 ID（Remote-Party-IDSIP header）
+  trustrpid=yes|no		; 设置远端 ID（Remote-Party-IDSIP header）是否被信任
+  
+  useragent=Asterisk PBX	; 修改user agent 字符串
+  
+  usereqphone = no		; 如果设置为 yes，会在uri 中增加 ";user=phone"，使uri中包含一个合法的电话号码
+  
+  compactheaders = yes	; 发送压缩的 SIP 头
+   
+  videosupport=yes		;打开视频支持。
+  maxcallbitrate=384		; 视频呼叫的最大速率 （默认 384 kb/s）
+  callevents=no		; sip ua执行事件时产生管理事件
+  alwaysauthreject = yes
+  ; 一个 INVITE 或  REGISTER 请求由于任何原因被拒绝时，总会使用同一个原因，用户名合法但密码不正确
+  ; 而不会告诉请求者是否有这个 user 或 peer。这样会减少攻击者扫描 SIP 账户的可能性。
+   
+  g726nonstandard = yes	; 是否使用G726-32 协商
+  ;	使用AAL2包次序来替代RFC3551（需要 Sipura 和 Grandstream ATAs）的次序
+  ;	AAL2与RFC3551的规则相反，会使用 AAL2-G726-32 协商
+  
+  matchexterniplocally = yes	; 如果本地设置与外部设置相同，仅替代 externip 或 externhost
+   
+  dynamic_exclude_static = yes	; 不允许动态主机使用静态主机的 IP 地址注册
+  ;	这将避免使用相同 IP 注册的错误。
+  
+  contactdeny=0.0.0.0/0.0.0.0		; 拒绝所有主机的联络（限制主机注册地点）
+  contactpermit=172.16.0.0/255.255.0.0	; 只能有一部分 IPs 可以注册到该服务器
+  ;	一个小窍门，作为一个SIP提供者在相同的IP地址注册，呼叫自己，会被重定向到同一位置。
+  
+  regcontext=sipregistrations
+  ;	如果设置了 regcontext，将会为一个是有 us 注册和反注册并且有 regexten=配置项目的用户动态创建和销毁一个 NoOp priority1extension
+  ;	可以使用 & 指定多个 context
+  ;	如果没有指定 'regexten' ，将会使用注册 peer 的 regexten 或名字
+  ;	如果指定了多个 context，则必须在 regexten 中使用 @ 来指定。在 regexten 中也可以使用 '&' 来指定多个。Regexten 中也可以使用模式匹配。
+  
+  regexten=1234		; 当他们注册时，创建 extension 1234
+  
+  ; RTP定时器：当前音频和视频流使用的定时器
+  ; RTP 超时仅仅应用于音频通道
+  ; 该属性可以全局设置，也可以对每一个设备设置。
+  rtptimeout=60		; 如果 60 秒之内音频通道没有 RTP 或 RTCP 活动，将挂断电话
+  ;	主要使用在通话中对方掉电或是老人忘记挂电话的情况
+  rtpholdtimeout=300	; 如果 300 秒之内音频通道没有 RTP 或 RTCP 活动，将挂断电话。
+  ;	主要使用在我方等待时间过长的情况
+  rtpkeepalive=<secs>	;在 RTP 流中发送保活信息，保持 NAT 开放。默认是关闭(0)
+  
+  ; SIP 调试信息
+  sipdebug = yes		;打开 SIP 调试信息
+  recordhistory=yes		; 默认记录 SIP 历史
+  dumphistory=yes		; 在对话结尾丢且 SIP 历史，被写到 DEBUG 日志
+  
+  t38pt_udptl = yes		; 传真T.38，默认 false
+  ;	该项目既可以在 [general] 中设置， 也可以对每个设备进行配置
+  ;	yes 表示允许在 SIP 到 Sip 的模式下传输传真，传输的两端都必须配置为支持 T38
+  ;	T.38 仅工作在SIP到SIP 呼叫中
+  
+  ; 外呼 SIP 注册：Asterisk 可以把自己作为一个 SIP UA 注册到一台 SIP 代理上。
+  register => user[:secret[:authuser]]@host[:port][/extension]
+  
+  如果没有指定 extension，将使用 's' extension。该 extension 必须在 extensions.conf 中定义，以便于可以从 SIP 代理上接收呼叫。
+  Host 即可以是 DNS 中定义的一个主机名，也可以是在下面定义的一个 section 名，如 serverA，见本文最后部分。
+   
+  例子:
+  register => serverB:1111@10.0.2.252/serverA
+  register => 1234:password@mysipprovider.com         ;将把呼叫传递给's' extension      
+  register => 2345:password@sip_proxy/1234
+   
+  在代理10.0.2.252上注册serverB。如果你在下面定义了一个 section 叫做 serverA，则呼叫会转到 serverA 中定义的 context 中。否则呼叫将会从这个代理上链接到本地extension serverA（定义在extensions.conf中），使用默认的context。
+  	技巧1：尽量避免在 sip.conf 中设置主机名作为 section，如 [provider.com]
+  	技巧2：如果有双向呼叫时，在代理中分开定义 type=peer 和 type=user，避免使用 type=friend
+  
+  registertimeout=20		; 注册间隔20秒(默认)
+  registerattempts=10	; 注册尝试次数，
+  			; 0 一直尝试，直到接受了注册。默认值 0
+  
+  ; REALTIME 支持
+  ; 关于ARA（Asterisk Realtime Architecture）结构的更多信息，可以看源代码中/doc 目录下的 realtime.txt 和 extconfig.txt 文件
+  rtcachefriends=yes		; 通过把 realtime friends 加入到一个内部列表中来缓存 friends，就好像是把friends从配置文件中加载一样。(yes|no)
+  rtsavesysname=yes		; 注册时保存 systemname 到 realtime 数据库，默认no
+  rtupdate=yes		; 注册时更新数据库（yes|no）
+  ;	如果设置为 yes，当 SIP UA 注册成功时，IP、原始端口、注册期间和用户名会被更新到 realtime 数据库。默认是yes
+  ;	如果设置为 no，realtime 功能可能会执行错误
+  rtautoclear=yes		; 自动失效已经创建的 friends（yes|no|<seconds>）
+  ;	如果设置为 yes，当注册预期时，friend 将从注册信息中清除
+  ;	如果设置为一个整数，friends 会在这个秒数内过期，而不是在注册时间间隔内过期。
+  ignoreregexpire=yes	; 打开这个设置有两个功能：
+  ;	对于非 realtime peers，注册过期时，注册信息也不会从内存或 asterisk 数据库移除
+  ;	如果有电话呼叫这个 peer 时，该注册信息会一直可以使用， 不管这个peer是否已经过期
+  ;	对于 realtime peers，无论是否过期，从数据库得到的注册信息仍然可以使用
+  ;	如果过期，realtime peer 信息仍然在内存（由于缓存或其他原因），该信息不会从realtime数据库移除
+  
+  ; 抖动缓存（jitterbuffer）配置
+  jbenable = yes		; 打开 SIP 通道接收端的抖动缓冲。默认 no
+  ;	在接收端不能接收抖动的情况下，可以使用抖动缓存来接收抖动
+  jbforce = no		; 强迫在 SIP 通道的接收端使用抖动缓存，默认 no
+  jbmaxsize = 200		; 抖动缓存大小（毫秒）
+  jbresyncthreshold = 1000	; 跳过抖动缓存的帧的时间长度，再同步缓存的帧
+  ;	可以用来提高语音的质量
+  ;	外部设备和程序经常会造成大的跳动或中断。默认设置为1000。
+  jbimpl = fixed		; SIP通道接收端抖动缓存的实现，当前有两种形式：
+  ;	fixed 缓存大小等于 jbmaxsize，大小固定
+  ;	adaptive 可变大小，实际上用于 IAX2 的一个新的抖动缓存
+  ;	默认是fixed
+  jblog = no		; 对抖动缓存帧记录日志，默认是 no
+  
+  ; 认证
+  [authentication]
+  ; 外呼的全局证书。当一个代理挑战认证您的 asterisk 服务器，如果挑战通过，这些证书将覆盖 peer/register 中定义的证书
+  ; 另外，asterisk 也可以使用其他的挑战码对外呼进行认证。我们挑战代理上的认证码，从认证码列表中选择一组证书
+  ; 语法:
+  ;	auth = <user>:<secret>@<realm>
+  ;	auth = <user>#<md5secret>@<realm>
+  ; 例子:
+  ;	auth=mark:topsecret@digium.com
+  ; 也可以增加认证配置到peer的定义中。该配置将覆盖其他的认证设置
+  auth=<authname>
+  
+  ; 分机/TRUNK 设置
+  
+  [NAME](!) 
+  ;	“(!)”，表示将“NAME”小节作为一个“抽象类”定义
+  ;	抽象类不是实体，但是可以包含一系列属性，凡是需要继承这些属性作为“公共属性”的实体对象就可以引用这个类。
+  ;	当遇到多个包含有相同属 性的对象要进行定义的时候，就不需要在每个对象上反复加上相同的属性，而是只要引用这个“抽象类”，就可以获得想要的“公共属性”。 
+  
+  [TRUNK_NAME](NAME) 
+  ;	定义名为“TRUNK_NAME”的小节，“(NAME)”表示该段定义的对象将继承 [NAME] 段内的属性
+  
+  [NAME]		; 设备名我们推荐使用字母(a-z), 数字 (0-9) 和下划线
+  
+  type=user|peer|friend
+  ; 	sip 的类型
+  ; 	SIP 设备本地连接的定义
+  ; 		peer（端）用于认证呼出呼叫，如果想要一个用户（extension）中有多个电话，定义可以呼叫两个 SIP peer 的extension
+  ; 			服务器呼该设备，或者设备呼叫服务器并且服务器使用 host 字段来匹配
+  ;			定义对方是一个服务提供者，它允许你的 Asterisk 通过这里定义的服务商打电话
+  ;			可将对方作为一个 SIP Service Provider，允许你的 Asterisk 通过对方进行呼出
+  ;			如果对方在逻辑上是一个客户端，asterisk 将根据传入的 Invite 请求来对对方进行身份验证
+  ;			需要注意的是这里的验证不是通过 username 和 secret，而是通过对方的 address 和 port
+  ;			这里分两种情况：
+  ;				对方的 address 和 port 没有匹配到你在 sip.conf 中对任何一个 peer 的设置, 如果你的 Asterisk 允许匿名呼入 (allowguest=yes)，那么, 该呼入将被传到在 sip.conf 的 general 配置中的 context 上。如果不允许匿名呼入，直接拒绝该呼入
+  ;				对方的 address 和 port 匹配到了任何一个 sip.conf 中的 peer 设置，那么该呼入将被传到该 peer 指定的 context 上
+  ; 		user（用户）用于认证呼入呼叫,用户通过上下文鉴定到达服务器
+  ; 			一个设备，使用 from 字段认证到服务器，发起呼叫
+  ;			定义对方是你的一个客户端，允许对方通过你的 Asterisk 打电话
+  ;			根据来源 Invite 包中的用户和密码信息来认证，所以对方不能也不需要 Register 到你的Asterisk服务器上
+  ; 		friend（朋友）用于认证呼入呼出，相当于（peer+user）
+  ; 	本地呼叫，最常使用的是 type=friend
+  
+  ; 需要额外说明一点的是 Register
+  ; 如果某个 peer 的 host 设置为 dynamic，那么 Asterisk 允许客户端通过 Register 的方式来告诉 Asterisk 对方的地址和端口
+  ; 特别注意：经网友证实，以上细节仅限于 SIP 协议，对于 IAX 协议，在 IAX 里那个 from 验证 IP 是没有用的，形同虚设，必需使用上面的两行代码验证对方的 IP 才行，要没有这两行，任何的 asterisk 只要知道你的服务器的IP都可以通过你的 asterisk 进行呼出，如果需要杜绝这个隐患，需要修改 /etc/asterisk/manager.conf 文件，增加类似下面的例句：
+  ; deny=0.0.0.0/0.0.0.0
+  ; permit=122.227.22.22/255.255.255.0
+  
+  username=<username[@realm]>
+  ; 	如果 Asterisk 接受来自远程 SIP 的 SIP INVITE 请求的客户端，这字段指定验证的用户名。
+  
+  secret=<string>
+  ; 	认证密码
+  ; 	如果 Asterisk 是作为一个 SIP 代理服务器，那么这个SIP客户端必须使用此密码登录（一个共享密码）
+  ; 	如果 Asterisk 是一个 SIP 客户端作为一个远程 SIP 的 SIP INVITE 的服务器要求身份验证，那么这个字段是用来验证该 Asterisk 的 SIP 协议提请发送到远程 SIP 服务器。
+  
+  context=<context_name>
+  ; 	定义了指令的地点，用于控制电话的权限，以及如何处理此号码的呼入呼叫。
+  ; 	如果类型为用户，上下文定义呼入呼叫使用。
+  ; 	如果类型为节点，上下文定义呼出呼叫使用。
+  ; 	如果类型为 friend 通过 SIP 实体定义呼入和呼出所使用的上下文。
+  
+  host=dynamic|hostname|IPAddr
+  ; 	host 参数指定了用户的主机名或 SIP 端点 IP 地址。
+  ; 	配置 host=dynamic 将要求号码注册，可以让 Asterisk 知道如何找到电话。
+  ;	static：”静态”表示服务的终端对象的 IP 是固定已知的
+  ;	dynamic：“动态”表示服务的终端对象IP是动态的不确定的，每次要联系 Asterisk 的话就必须要注册上来
+  
+  accountcode=<string>
+  ; 	用来填充“accountcode“领域的CDR（呼叫详细记录）
+  
+  ; NAT支持
+  ; 如果 Asterisk 在一个 NAT 设备内部与外部的一个服务通讯，需要设置 externip, externhost 和 localnet
+  
+  externip = 200.201.202.203		; 在公网上的一个中间人地址，处理 SIP 消息
+  ;	当注册和与一个代理通讯时，需要设置 externip 和 localnet
+  
+  externhost=foo.dyndns.net		; 也可以配置一个域名，Asterisk 将会执行 DNS查询
+  ;	不推荐这种方式，尽量使用 IP，配置 externip
+  
+  externrefresh=10			; 更新 externhost 的时间间隔
+  
+  ; 可以有多个本地配，设置一个合理的就可以。(RFC 1918--私有地址分配 )                              
+  localnet=192.168.0.0/255.255.0.0	; All RFC 1918 addresses are local networks
+  localnet=10.0.0.0/255.0.0.0    	; Also RFC1918
+  localnet=172.16.0.0/12          	; Another RFC1918 with CIDR notation
+  localnet=169.254.0.0/255.255.0.0 ;Zero conf local network
+  
+  
+  ; 设置用于 Asterisk 在一个公网地址上，需要和一个NAT设备后的设置通讯。如果出现音频问题，一般是NAT配置或防火墙屏蔽了SIP+RTP端口。RTP端口配置在rtp.conf中。
+  nat=yes|no
+  ; 	这个变量改变了 Asterisk 的防火墙后面客户端的行为。
+  ; 	配置 nat=yes，强迫 Asterisk 忽略号码的联系信息，使用收到的包的地址信息。
+  ;	配置 nat=no，表示服务器和客户端之间没有 NAT 设备
+  ; 	如果你的电话只能单向听到声音，应该是NAT 配置的问题。
+  ; 	如果 asterisk 在公网上，客户端在一个 NAT 设备内部，你必须配置 nat，同时打开 qualify=yes 属性，保持 nat 连接处于开放状态。
+  ;	指定终端对象是否会在 NAT 之下
+  ;	全局NAT 配置（影响所有的peers和users），取下列值：
+  ;		yes 总是忽略信息，假定使用NAT
+  ;		no 基于RFC3581使用NAT模式(;rport)
+  ;		never 从不尝试使用NAT模式或RFC3581支持
+  ;		route 假定使用 NAT，不发送 rport
+  ;	如果对象是散户这里普遍都是 Yes
+  ;	如果对象是公网上的对接系统的话就 no
+  ;	nat=yes，电话可能在一个NAT设备后边，发送 SIP 和 RTP 包到收到包的原 IP 地址，而不是信任的 SIP 头中的地址
+  
+  qualify=yes|no|milliseconds
+  ; 	检查客户端是否可到达，可以监视 Asterisk 服务器和电话之间的延时
+  ;	保活间隔
+  ; 	使用 qualify=yes，确认远端设备是否可达。
+  ; 	qualify=yes 可以用于监视任何远端设备，包括其它的Asterisk服务器。
+  ; 	默认情况是 Asterisk 认为时延在 2,000ms(2 seconds) 以内的设备可达。
+  ;	如果 milliseconds 毫秒后答复，认为已经关闭，用于 NAT 连接的保活
+  ;	qualify=yes 使用默认值
+  ; 	可以配置Asterisk判断对端是否可达的时间，通过将 yes 替换为毫秒。
+  ; 	如果没有使用这个配置，Status 为 Unmonitored
+  
+  canreinvite=update|yes|no|nonat
+  ; 	在 SIP 协议，邀请用于发起呼叫，重定向媒体
+  ;	默认情况下，Asterisk 会尽量使音频流走最优的路径（re-invite）
+  ;	如果没有特别设置媒体流需要通过服务器的话，Asterisk 会把媒体流重定向
+  ;	当 Asterisk 在 NAT 外部，客户端在 NAT 内部时，上述功能不能工作，这时必须配置 canreinvite=nonat
+  ;	默认情况下，RTP 媒体流会不经过服务器，在呼叫两端直接传递
+  ;	一些设备不支持这种方式（特别是一端在 NAT 内）。默认设置 yes。
+  ;	如果所有的客户端都在 NAT 内，或其他原因想让媒体流通过服务器，需要关闭该选择
+  ; 	在初始邀请后相同对话中发起的任何邀请都被视作重邀请（reinvite）。
+  ; 	配置 canreinvite=no 让 Asterisk 媒体通道经过自己，而不允许 RTP 信息直接在端点之间传送。
+  ; 	Asterisk在以下的任何情况下都不会发起重邀请：
+  ; 		如果客户端的任何一方配置为 canreinvite=no；
+  ; 		如果客户端不能协商编码，Asterisk 需要执行语音编码转换；
+  ; 		如果客户端的任何一方配置为 nat=yes；
+  ; 		如果Asterisk在呼叫中需要监听双音多频（DTMF）音（用于呼叫前转或者其他功能）
+  ; 		canreinvite=yes		“允许 RTP 媒体直接（允许 RTP 数据流不经过服务器）”
+  ; 		canreinvite=nonat		“允许 reinvite 当本地，否认 reinvite 当 NAT”
+  ; 		canreinvite=update		“使用 UPDATE，而不是邀请”
+  ;			允许媒体路径重定向的一个选项，UPDATE 替代 INVITE
+  ;			可以和 'nonat' 合并成 'canreinvite=update,nonat'，相当于 'yes'
+  ; 		canreinvite=nonat		“更新时使用的地方，否认当 NAT”
+  ;			允许媒体路径重定向的一个选项，告诉发送媒体流的 peer 不在 NAT 里边
+  ;			RTP核心可以决定使用收到媒体的 from 地址
+  ;	设定是否允许终端发起重新邀请
+  ;	终端从开始呼叫直到切断，当中第一次邀请对方进行呼叫请求之后的任何请求动作都视为“重新邀请”，一般都对这种行为做到严格控制而设定为no。
+  ;	如果使用了NAT，该项须设为 NO，使媒体流经过服务器
+  
+  directrtpsetup=yes|no	; 类似 canreinvite，可以马上把媒体传递给像 SIP 代理器的另一方。
+  ;	打开新的实验性的直接 RTP 建立，建立一个呼叫，媒体流直接 peer-to-peer 传递
+  ;	而不是使用 re-invites 方式。视频不支持该方式
+  ;	被叫方发送 RTP 载荷和收到 200OK 响应的 fmtp 头信息不能与主叫的 INVITE 请求匹配
+  ;	如果 NAT 后边的设备设置了 canreinvite=yes，传输也会失败
+  
+  callgroup=num1,num2-num3
+  ; 	定义了此分机的电话组。
+  ;	呼叫组，默认为 1
+  ;	呼叫组和接听组范围应该在0 到 63
+  
+  ;pickupgroup：代接组。同组可以接电话，按*8应用。
+  
+  setvar=variable=value	; 通道变量被设置为从该节点/用户的所有通话
+  ;	为经过这个设备的所有呼叫设置通道变量
+  
+  call-limit=number		; 同时呼叫的数量
+  ;	允许同时 number 个外呼到这个 peer
+  ;	由于 realtime 的 peer 不存储在内存中，所以 realtime 时不能强制使用 Call-limits
+  ;	同一时刻在服务器和客户端之间只允许 number 个呼入和 number 个呼出
+  ;	相当于是 number 个 peer 和 number 个 user，加起来是 number 个 friend
+  ;	这也会影响到订阅。由于没有 friend 的联合的呼叫计数器，所以当前没有办法在 sip.conf 中限制每个客户端的内呼或外呼的数量。可以在拨号计划中用组计数器来达到这个目的
+  
+  ; 此外除了自动生成的配置还有其他的配置
+  
+  allowguest=yes|no		; 拒绝或允许来电。
+  
+  callerid=<string>		; 当没有可用信息时使用call ID信息
+  ; callerid="Jane Smith" <5678>
+  ; callerid=John Doe <1234>	; 全 caller ID，来修改呼入电话的 callerid 信息
+  
+  busylevel=number		; 同时通话的数量，直到用户/同行正忙
+  
+  callingpres=number|descriptive_text
+  ; 	设置电话的来电显示
+  ; 	有效描述的值是 allowed_not_screened, allowed_passed_screen, allowed_failed_screen,allowed,prohib_not_screened,prohib_passed_screen, prohib_failed_screen, prohib, and unavailable.
+  
+  cid_number=<string>	; 设置对外显示的字符串
+  
+  defaultip=Dotted.Quad.IP.Addr
+  ; 	默认的IP地址
+  ; 	如果客户端指定 host=dynamic。
+  ; 	如果客户端没有使用任何其他的 IP 地址注册使用此项。
+  ; 	只适用于 type=peer
+  
+  dtmfmode=inband|info|rfc2833
+  ; 	客户如何对 DTMF 信令处理。设置发送 DTMF 模式
+  ; 	默认 rfc2833
+  ; 	配置 dtmfmode=rfc2833，允许在呼叫中监听双音多频（DTMF）音（用于呼叫前转或者其他功能）
+  ;	info：SIP INFO messages
+  ;	inband：按键的设备产生拨号音（需要64 kbit 编码 -alaw, ulaw），仅支持 ulaw 或 alaw
+  ;	auto：默认使用 rfc2833，如果远端不支持时会使用 inband 
+  
+  fromuser=<from_ID>	; 指定用户输入“from”来代替 $CALLERID(number)
+  ; fromuser=yourusername	; 一些 SIP 提供端（代理）需要该配置
+  ;	fromuser 对应 From: <sip:fromuser@mydomain> 中的 fromuser
+  
+  ; SIP 域名支持
+  ; 收到的 INVITE 和 REFER 消息可以和一系列的被允许的域名匹配
+  ; 每一个域名能够直接呼入他们描述的特定 context
+  ; 默认情况下，所有的域都会接收呼叫，并发送呼叫到指定的 context 或者 user/peer 指定的 Context
+  ; 如果配置了域列表，REGISTER请求的域不在其中，呼叫将会被拒绝。
+  ; 使用如下方式使用域：
+  domain=<domain>[,<context>]
+  ;例如:
+  domain=myasterisk.dom
+  domain=customer.com,customer-context
+  
+  ; 如果需要过滤呼入请求时，应该增加一个服务器的默认域设置。
+  autodomain=yes
+  
+  allowexternaldomains=no		;不允许请求非本地域
+   
+  domain=mydomain.tld,mydomain-incoming
+  ; 为一个呼入呼叫配置域和context
+  domain=1.2.3.4			; 使用 IP 地址作为本地域，可以同时又几个域设置。
+  allowexternaldomains=no		; 不允许 INVITE 和 REFER 请求非本地域，默认yes。
+  
+  autodomain=yes			; 自动把本地主机名和IP地址加入域名列表。
+  
+  fromdomain=mydomain.tld		; 当进行外呼SIP INVITEs 到一个非peers时，使用主域而不是IP
+  ;	fromdomain=<domain>
+  ;	地址来识别 From: headers 头信息。这是一个礼貌的用法，它可能对一些在你的服务器上没有优先账号的目的地址是必须的。
+  
+  fullcontact=<sip:uri_contact>
+  ; 	SIP URI 的联系，实时同行。只适用于实时同行
+  
+  fullname="FullName"	; 设置对外来电显示（姓名）
+  
+  incominglimitand outgoinglimit=Number
+  ; 	限制同时呼叫 SIP 客户端的数量，仅仅适用于 type=peer
+  
+  insecure= very|yes|no|invite|port
+  ; 	指定如何处理与 peers 的连接
+  ;	配置对 peer 呼入的身份验证方式
+  ;	port：Asterisk 忽略对方的 port，只根据对方的 address 来验证某个 peer，Asterisk 收到对方的 Invite 后，会发送 SIP/2.0 401 Unauthorized 到对方，要求对方发送认证信息，但事实上对方返回回来的认证信息不会被真正使用
+  ;	invite：Asterisk 对初始 Invite 不进行验证，这意味着 Asterisk 直接使用客户端传入的 Invite 包中的信息尝试进行验证而不会发送 SIP/2.0 401 Unauthorized 包到对方
+  
+  mailbox=mailbox		; 语音信箱
+  ; mailbox=1234@default	; 语音信箱 1234，context "default"
+  
+  port=5060		; SIP 端口号
+  ;	需要连接到的远程的端口号，也可以使用 defaultip 配置中的 defaultport
+  
+  ;amaflags：分类的 CDR 记录。选择是默认情况下，省略，计费，文件。
+  ;astdb：向Asterisk 的数据库里插入值。
+  ;musicclass：在 musiconhold.conf 指定的类
+  ;musiconhold：保持音乐
+  ;trunkname：为中继定义一个名字
+  
+  subscribemwi=yes		; 电话点阅了邮件通知时，发送通知
+  ;	指示 Asterisk 在等待信息的时候不要发送 NOITFY 信息
+  ;	确定 Asterisk 如何通知 SIP 客户端关于语音信箱的信息
+  
+  permit=<ipaddress>/<network mask>
+  deny=<ipaddress>/<network mask>
+  ; 	IP地址和网络限制。允许或限制到达某些特定的网络。
+  ;	0.0.0.0/0.0.0.0：拒绝所有的ip的访问
+  
+  progressinband=never|no|yes
+  ;	是否产生呼入铃音
+  ;	Never 表示从来不适用呼入信号
+  ;	可选值：yes, no, never 。默认值never。
+  ;	宝利通(Polycom)电话在"never"时不能很好的工作，设为 no
+  
+  promiscredir=yes|no	; 是否允许支持 302 重定向
+  ;	yes 表示允许 302 或 REDIR 非本地 SIP 地址
+  ;	注意，对本地系统做重定向操作会导致循环调用，asterisk 并不支持这种操作
+  regseconds=seconds	; SIP 注册的秒数
+  
+  ; 状态通知 STATUS NOTIFICATIONS (SUBSCRIPTIONS)
+  ; 可以使用 "hint" priority 来订阅 extensions 的状态（见extensions.conf.sample）
+  ; chan_sip 支持两种通知的格式：dialog-info 和 SIMPLE
+  ; 如果你为一个设备设置了呼叫限制，就可以得到更多的细节报告（比如busy）
+  ; 当呼叫限制时，会被告知忙。为了能够转接，你至少需要设置限制级别为 2
+  ; 对于队列，你需要状态报告达到这个细节的界别
+  ; 不管怎么样，如果你使用 Sip 订阅，队列和管理会为读状态信息使用相同的内部接口
+  ; 注意，如果设置了一个 realtime 的拨号计划，并且使用了 realtime switch，订阅不会工作
+  
+  allowsubscribe=no		; 不支持订阅 (默认yes)
+  subscribecontext=<context_name>
+  ;	为 SIP SUBSCRIBE 设置特殊的 context
+  ;subscribecontext = default	; 为订阅请求设置 context，用来限制订阅到本地 extensions
+  ;subscribecontext=localextensions	; 仅允许订阅本地localextensions
+  ;	可以对每个peer/user进行设置。
+  notifyringing = yes		; 当发起其他呼叫时，INUSE 状态的订阅者是否会发送 RINGING（默认 no）
+  notifyhold = yes		; 处于 HOLD 状态时，通知订阅者（默认 no）
+  ;	如果在使用realtime时，打开了 notifyringing 和 notifyhold，将会增加很多的数据库的传输。
+  limitonpeers = yes		; 仅对 peers 进行呼叫限制。
+  
+  record_out=Always		; 去电录音 Adhoc 须要时，Never 从不，Always总是
+  record_in=Never		; 来电录音
+  
+  outboundproxy=proxy.provider.domain
+  ;	发送外呼信号到这个代理，而不是直接到 peer
+  
+  rfc2833compensate=yes	; 是补偿两个 asterisk 服务器之间DTMF 传输
+  ;	必须打开这个选项，否则 DTMF 接收将不会正常工作
+  
+  t38pt_usertpsource=yes	; 如果 nat 开启时，使用 RTP 包的原 IP 地址作为 UDPTL 包的目的地址
+  ;	如果接收到一个简单的 RTP 包，Asterisk 将会知道远端设备的公网 IP 地址
+  ;	如果客户端设置了端口映射，UDPTL 会发送到远端设备
+  
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; 关闭 X-Lite 的安静压缩（Transmit Silence"=YES）
+  ; 注意，Xlite 发送 NAT 保活数据包，因此 qualify=yes 不是必须的

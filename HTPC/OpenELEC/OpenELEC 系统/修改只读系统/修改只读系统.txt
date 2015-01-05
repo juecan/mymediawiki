@@ -1,0 +1,186 @@
+===修改只读系统===
+
+====操作步骤====
+*SSH 登陆系统后台
+ Xshell:\> ssh root@172.16.8.185
+ Connecting to 172.16.8.185:22...
+ Connection established.
+ To escape to local shell, press 'Ctrl+Alt+]'.
+ WARNING! The remote SSH server rejected X11 forwarding request.
+ ##############################################
+ # OpenELEC - The living room PC for everyone #
+ # ...... visit http://www.openelec.tv ...... #
+ ##############################################
+ OpenELEC (official) Version: 4.0.7
+ OpenELEC:~ # ls
+ lost+found   music        pictures     screenshots  tvshows      videos
+
+*建立操作环境
+ OpenELEC:~ # mkdir tools
+ OpenELEC:~ # cd tools/
+ OpenELEC:~/tools # pwd
+ /storage/tools
+ 注：mksquashfs 为事先编译好的文件，update_system.sh 为手动添加的 Shell 脚本
+ OpenELEC:~/tools # ls
+ mksquashfs        update_system.sh
+
+*挂载文件系统以便修改
+ OpenELEC:~/tools # ./update_system.sh start
+ Verifying free space
+ Making directories
+ Mounting SYSTEM
+ SYSTEM mounted
+ Copy files, please wait
+ Umounting SYSTEM
+ You can edit files in /storage/system.new
+
+*例：修改配置文件
+ OpenELEC:~/tools # vi /storage/system.new/etc/sshd_config
+
+*生成新的系统文件
+ OpenELEC:~/tools # ./update_system.sh stop
+ Squashing new SYSTEM, copying to update directory...
+ Parallel mksquashfs: Using 2 processors
+ Creating 4.0 filesystem on /storage/.update/SYSTEM, block size 131072.
+ [==========================================================================================================-] 9294/9294 100%
+ Exportable Squashfs 4.0 filesystem, gzip compressed, data block size 131072
+ compressed data, compressed metadata, compressed fragments, compressed xattrs
+ duplicates are removed
+ Filesystem size 138636.79 Kbytes (135.39 Mbytes)
+ 38.16% of uncompressed filesystem size (363271.64 Kbytes)
+ Inode table size 94282 bytes (92.07 Kbytes)
+ 28.19% of uncompressed inode table size (334413 bytes)
+ Directory table size 91287 bytes (89.15 Kbytes)
+ 41.77% of uncompressed directory table size (218544 bytes)
+ Number of duplicate files found 258
+ Number of inodes 9970
+ Number of files 7173
+ Number of fragments 626
+ Number of symbolic links  591
+ Number of device nodes 0
+ Number of fifo nodes 0
+ Number of socket nodes 0
+ Number of directories 2206
+ Number of ids (unique uids + gids) 2
+ Number of uids 1
+ root (0)
+ Number of gids 2
+ root (0)
+ dbus (81)
+ General md5 file...
+ All done. Reboot to upgrade
+ OpenELEC:~/tools # ls /storage/.update/
+ KERNEL      KERNEL.md5  SYSTEM      SYSTEM.md5
+
+*重启后进行更新
+ OpenELEC:~/tools # reboot
+
+==== 相关工具 ====
+
+*mksquashfs
+
+ 1、下载 squashfs4.3.tar.gz
+ 2、在 linux 系统中编译 squashfs：
+ 	[~]# tar -zxvf squashfs4.3.tar.gz
+ 	[~]# cd squashfs4.3/squashfs-tools/
+ 	[squashfs-tools]# make
+ 3、拷贝 mksquashfs 到 OpenELEC：
+ 	[squashfs-tools]# scp mksquashfs root@172.16.8.185:/storage/tools/
+
+*update_system.sh
+
+ #!/bin/bash
+ 
+ ORIG_DIR=/storage/system.orig
+ NEW_DIR=/storage/system.new
+ 
+ # copy_system orig_dir new_dir
+ copy_system()
+ {
+ 	orig_dir=$1
+ 	new_dir=$2
+ 
+ 	#echo "检查空闲空间..."
+ 	echo "Verifying free space"
+ 	free_space=`df /storage | grep dev | awk {'print $4'}`
+ 	if [ ${free_space} -lt 400000 ]
+ 	then
+ 		#echo "/storage 没有足够空间"
+ 		echo "Not enough space left in /storage"
+ 		exit
+ 	fi
+ 
+ 	#echo "创建文件夹"
+ 	echo "Making directories"
+ 	mkdir ${orig_dir}
+ 	mkdir ${new_dir}
+ 
+ 	#echo "挂载 SYSTEM..."
+ 	echo "Mounting SYSTEM"
+ 	mount -t squashfs -o loop /flash/SYSTEM ${orig_dir}
+ 	sleep 10
+ 	if mount | grep "on ${orig_dir} type" > /dev/null
+ 	then
+ 		#echo "SYSTEM 已经挂载"
+ 		echo "SYSTEM mounted"
+ 	else
+ 		#echo "挂载 SYSTEM 出错"
+ 		echo "Error mounting SYSTEM"
+ 		exit
+ 	fi
+ 
+ 	#echo "拷贝文件，请稍后..."
+ 	echo "Copy files, please wait"
+ 	cp -a ${orig_dir}/* ${new_dir}
+ 
+ 	#echo "卸载 SYSTEM"
+ 	echo "Umounting SYSTEM"
+ 	umount ${orig_dir}
+ 	rm -r ${orig_dir}
+ 
+ 	#echo "你可以修改 /storage/system.new 中的文件"
+ 	echo "You can edit files in ${new_dir}"
+ }
+ 
+ # pack_system new_dir
+ pack_system()
+ {
+ 	new_dir=$1
+ 
+ 	#echo "压缩新的 SYSTEM，拷贝到更新目录..."
+ 	echo "Squashing new SYSTEM, copying to update directory..."
+ 	if [&nbsp;! -d "/storage/.update" ]
+ 	then
+ 		mkdir -p /storage/.update
+ 	fi
+ 	./mksquashfs ${new_dir} /storage/.update/SYSTEM
+ 	chmod 755 /storage/.update/SYSTEM
+ 	cp /flash/KERNEL /storage/.update/
+ 
+ 	#echo "产生 md5 校验文件..."
+ 	echo "General md5 file..."
+ 	md5sum /storage/.update/SYSTEM > /storage/.update/SYSTEM.md5
+ 	md5sum /storage/.update/KERNEL > /storage/.update/KERNEL.md5
+ 
+ 	rm -r ${new_dir}
+ 	#echo "所有工作完成，重启后更新"
+ 	echo "All done. Reboot to upgrade"
+ }
+ 
+ if [ $#&nbsp;!= 1 ]
+ then
+ 	echo "Usage: $0 start|stop"
+ 	exit
+ fi
+ 
+ case $1 in
+ "start")
+ 	copy_system ${ORIG_DIR} ${NEW_DIR}
+ 	;;
+ "stop")
+ 	pack_system ${NEW_DIR}
+ 	;;
+ *)
+ 	echo "Usage: $0 start|stop"
+ 	;;
+ esac

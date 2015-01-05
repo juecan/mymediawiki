@@ -1,0 +1,17 @@
+=== 编译 ===
+
+*依赖包：
+
+ bash bc gcc g++ sed patch touch tar bzip2 gzip
+ perl cp gawk makeinfo gperf cvs zip unzip
+ mkfontscale mkfontdir bdftopcf diff xsltproc java
+
+ 源码工具：scripts/checkdeps
+
+*编译
+ 直接编译：PROJECT=Generic ARCH=x86_64 make release
+ 保存输出信息： PROJECT=Generic ARCH=x86_64 make release | tee -a ../openelec_make_log
+
+*修改 SSH 密码
+ [OpenELEC.tv]$ vim projects/Generic/options
+ 15   ROOT_PASSWORD="openelec"

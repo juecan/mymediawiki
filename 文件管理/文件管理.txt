@@ -1,0 +1,6 @@
+===文件服务器===
+
+*[[Samba|Samba]]
+*[[NFS|NFS]]
+*[[PhotoManager|相簿]]
+*[[KODExplorer|芒果云资源管理器]]

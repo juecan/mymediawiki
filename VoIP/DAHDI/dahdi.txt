@@ -1,0 +1,396 @@
+===DAHDI===
+
+*执行 dahdi_test 命令，通常测试结果在 99.5%以上， 如果过低有可能是硬件出现故障。
+
+*lsdahdi
+ [~]# lsdahdi 
+ ### Span  1: TE4/0/1 "T4XXP (PCI) Card 0 Span 1" CCS/HDB3/CRC4 ClockSource
+ 1	PRI	Clear		(In use)	(EC: MG2 - INACTIVE)	
+ 1	PRI	Clear		(In use)	(EC: MG2 - INACTIVE)	YELLOW
+ 16	PRI	HDLCFCS	(In use)
+ 63	PRI	Clear		(In use)	(EC: MG2 - INACTIVE)	RED
+ 通道 信令					回声抵消		通道状态
+
+*通道状态：
+ 无状态表示一切正常
+ YELLOW：表示物理链路有问题，两端 crc4 不同也会出现
+ RED：表示没有接线
+
+*/proc/dahdi
+ [~]# cat /proc/dahdi/2
+ Span 2: TE4/0/2 "T4XXP (PCI) Card 0 Span 2" CCS/HDB3/CRC4 
+ 	Timing slips: 21593
+
+ Timing slips：滑码
+ 	E1的时钟和对方的时钟不同步
+ 	两边的码流速度不一致
+ 	存在时钟配置问题
+ 	设置 span 的 timing source
+ 	主从时钟
+ 	只有1个E1作主时钟
+ 	其它的E1的时钟都要以它为主
+
+====配置文件====
+*system.conf
+ ; 注意：如果用户修改了 system.conf, 要求用户重新启动驱动（建议重新启动服务器环境）。
+ ; /etc/dahdi/system.conf 控制 bchan mtp2 语音通道配置文件
+ ;
+ ; DAHDI 配置文件
+ ;
+ ; /etc/zaptel.conf
+ ; /etc/dahdi/system.conf
+ ; 用于硬件接口配置，该文件是配置数字接口卡必须具备的文件
+ ; 在加载驱动时，运行 ztcfg -vvv（dahdi_cfg -vvv）时，系统会读取并加载该文件
+ ;
+ ; Span 配置
+ ; ^^^^^^^^^
+ ;   span=<span num>,<timing source>,<line build out (LBO)>,<framing>,<coding>[,yellow]
+ ;
+ ; span num：表示 span 的数量，并且该数值从 1 开始
+ ; 	例如 D110P，span 的数量为 1，D210P，span 总数量为 2（分别有 span1，span2）
+ ;
+ ; <timing source>：决定是否将 T1/E1 远端时钟信号作为时钟定时的主源
+ ; 		如果是，我们自己的时钟将同步到它。
+ ; 		所有的 T1/E1 spans 在发送端产生一个时钟信号
+ ; TE1 时钟同步被用于 propagate a single clock source over the T1/E1 ports on a single card
+ ; 时钟模式：
+ ; 	NORMAL (slave)
+ ;	MASTER
+ ; 必须确定哪个端口应该在 NORMAL (slave) 时钟模式下，哪个端口应该在 MASTER 时钟模式下
+ ; 所有连接到电信的端口都必须处于 NORMAL 模式下，因为电信是 MASTER
+ ; timing source：时钟同步设定参数，通常有：
+ ; 配置时钟模式为 MASTER：
+ ; 	0：该卡的这个 span 将被设定为同步时钟源，并且发送时钟同步信号给远端。
+ ;		由 asterisk 提供时钟信号
+ ;		* 通常只用于网络端（net）而不是用户端（cpe）
+ ; 配置时钟模式为 NORMAL(slave)：
+ ;	1：该卡的这个 span 将被设定为主同步时钟源。
+ ;	2：该卡的这个 span 将被设定为备选同步时钟源（第二选择，如果选择第一端口失败（远端模，电缆断了，或其他））。
+ ;	3,4……：也是备用，以此类推（第三……选择）。
+ ;
+ ; 	* 如果 asterisk 服务器直接连入运营商，则 timing source 应该设定为 1，用于接收从 telco 送来的时钟信号
+ ;	* 所有连接到电信的端口都必须处于 NORMAL 模式下，因为电信是 MASTER
+ ;	* 本地是从时钟，从运营商获得时钟
+ ;	* T1/E1 的直接或间接连接到 PSTN 供应商（电信）一般应首选同步
+ ;
+ ; Incorrect timing sync may cause clicks/noise in the audio, poor quality or failed
+ ; faxes, unreliable modem operation, and is a general all round bad thing.
+ ;
+ ; line build-out：LBO，是一个整数。表示阻抗（运营商与 asterisk 服务器之间的距离），一般情况下都应该设定 LBO=0，除非它们之间的距离很长。
+ ; 	0: 0 db (CSU) / 0-133 feet (DSX-1)
+ ; 	1: 133-266 feet (DSX-1)
+ ; 	2: 266-399 feet (DSX-1)
+ ; 	3: 399-533 feet (DSX-1)
+ ; 	4: 533-655 feet (DSX-1)
+ ; 	5: -7.5db (CSU)
+ ; 	6: -15db (CSU)
+ ; 	7: -22.5db (CSU)
+ ;
+ ; framing：帧格式。用于告知硬件（服务器）与远端如何通信
+ ; 	T1 模式：d4 或者 esf
+ ; 	E1 或 BRI 模式：cas 或者 ccs
+ ; 		d4：could be referred to as 'sf' or 'superframe'
+ ;		cas：Channel Associated Signaling，随路信令
+ ;		ccs：Common Channel Signalling，公共信道信令
+ ;		sf：superframe，超帧格
+ ;		esf：extendedsuperframe，扩展超帧格式
+ ;
+ ; coding：通信编码
+ ; 	T1 模式：ami 或者 b8zs
+ ; 	E1 或 BRI 模式：ami 或者 hdb3（E1 有些时候需要 crc4 校验，需向运营商确认）
+ ;   * If the keyword 'yellow' follows, yellow alarm is transmitted when no channels are open.
+ ;
+ ;span=1,0,0,esf,b8zs
+ ;span=2,1,0,esf,b8zs
+ ;span=3,0,0,ccs,hdb3,crc4
+ ; 对于 E1/T1 数字中继卡，开启 crc4，如果运营商不支持 crc4 检验，移除即可
+ ;
+ ; 阻抗/帧结构/CRC4校验出现双方不匹配，可能导致不通/误码/滑码/失步等问题，请联系运营商确认以上参数必须和本地完全匹配。
+ ;
+ ; Dynamic Spans
+ ; 
+ ; Next come the dynamic span definitions, in the form:
+ ; 
+ ;   dynamic=<driver>,<address>,<numchans>,<timing>
+ ;
+ ; Where <driver> is the name of the driver (e.g. eth), <address> is the
+ ; driver specific address (like a MAC for eth), <numchans> is the number
+ ; of channels, and <timing> is a timing priority, like for a normal span.
+ ; use "0" to not use this as a timing source, or prioritize them as
+ ; primary, secondard, etc.  Note that you MUST have a REAL DAHDI device
+ ; if you are not using external timing.
+ ;
+ ;   dynamic=eth,eth0/00:02:b3:35:43:9c,24,0
+ ;
+ ; If a non-zero timing value is used, as above, only the last span should
+ ; have the non-zero value. 
+ ;
+ ; Channel Configuration
+ ; 
+ ; 通道信令设定:
+ ; <device>=<channel list>
+ ;
+ ; 可用的信令：
+ ; e&m：使用 E&M 信令，除了指定的通道
+ ;   alternatively you can specify e1 (i.e. e&m=e1) for use
+ ;   with e1 channels in México (specific implementation, such as Immediate,
+ ;   Wink, or Feature Group D are handled by the userspace library).
+ ; fxsls：使用 FXS Loopstart 信令
+ ; fxsgs：使用 FXS Groundstart 信令
+ ; fxsks：使用 FXS Koolstart 信令
+ ; fxols：使用 FXO Loopstart 信令
+ ; fxogs：使用 FXO Groundstart 信令
+ ; fxoks：使用 FXO Koolstart 信令
+ ; sf：使用 in-band single freq tone
+ ;   Syntax as follows: 
+ ;    
+ ;     channel; => sf:<rxfreq>,<rxbw>,<rxflag>,<txfreq>,<txlevel>,<txflag>
+ ;   
+ ;   rxfreq is rx tone freq in Hz, rxbw is rx notch (and decode)
+ ;   bandwith in hz (typically 10.0), rxflag is either 'normal' or
+ ;   'inverted', txfreq is tx tone freq in hz, txlevel is tx tone 
+ ;   level in dbm, txflag is either 'normal' or 'inverted'. Set 
+ ;   rxfreq or txfreq to 0.0 if that tone is not desired.
+ ;
+ ; unused:: 
+ ;   No signalling is performed, each channel in the list remains idle
+ ; clear::
+ ;   Channel(s) are bundled into a single span.  No conversion or
+ ;   signalling is performed, and raw data is available on the master.
+ ; bchan：话音，数据通道
+ ;   Like 'clear' except all channels are treated individually and
+ ;   are not bundled.  'inclear' is an alias for this.
+ ; rawhdlc::
+ ;   The DAHDI driver performs HDLC encoding and decoding on the 
+ ;   bundle, and the resulting data is communicated via the master
+ ;   device.
+ ; dchan：信令，分组信息通道。SS7 中不要设置
+ ;   The DAHDI driver performs HDLC encoding and decoding on the
+ ;   bundle and also performs incoming and outgoing FCS insertion
+ ;   and verification.  'fcshdlc' is an alias for this.
+ ;  	* chan_ss7 环境下，system.conf 中，大部分 dchan 设置是必须关闭的
+ ;	* 可使用 bchan=1-15,17-31 和 MTP2=16 来对接 SS7
+ ;	* 注释 hardhdlc 或者 dchan
+ ; hardhdlc::
+ ;   The hardware driver performs HDLC encoding and decoding on the
+ ;   bundle and also performs incoming and outgoing FCS insertion
+ ;   and verification.  Is subject to limitations and support of underlying
+ ;   hardware.
+ ; nethdlc::
+ ;   The DAHDI driver bundles the channels together into an
+ ;   hdlc network device, which in turn can be configured with
+ ;   sethdlc (available separately). In 2.6.x kernels you can also optionally
+ ;   pass the name for the network interface after the channel list.
+ ;   Syntax:
+ ;   
+ ;     nethdlc=<channel list>[:interface name]
+ ;   Use original names, don't use the names which have been already registered 
+ ;   in system e.g eth.
+ ;
+ ; dacs::
+ ;   The DAHDI driver cross connects the channels starting at
+ ;   the channel number listed at the end, after a colon
+ ; dacsrbs::
+ ;   The DAHDI driver cross connects the channels starting at
+ ;   the channel number listed at the end, after a colon and 
+ ;   also performs the DACSing of RBS bits
+ ;
+ ; The channel list is a comma-separated list of channels or ranges, for
+ ; example:
+ ;
+ ;   1,3,5 (channels one, three, and five)
+ ;   16-23, 29 (channels 16 through 23, as well as channel 29)
+ ;
+ ; So, some complete examples are:
+ ;
+ ;   e&m=1-12
+ ;   nethdlc=13-24
+ ;   fxsls=25,26,27,28
+ ;   fxols=29-32
+ ;
+ ;   e&m=e1
+ ;
+ ;fxoks=1-24
+ ;bchan=25-47
+ ;dchan=48
+ ;fxols=1-12
+ ;fxols=13-24
+ ;e&m=25-29
+ ;nethdlc=30-33
+ ;clear=44
+ ;clear=45
+ ;clear=46
+ ;clear=47
+ ;fcshdlc=48
+ ;dacs=1-24:48
+ ;dacsrbs=1-24:48
+ ;
+ ; 音调区域数据
+ ; 
+ ; Finally, you can preload some tone zones, to prevent them from getting
+ ; overwritten by other users (if you allow non-root users to open /dev/dahdi/*
+ ; interfaces anyway.  Also this means they won't have to be loaded at runtime.
+ ; 格式为： "loadzone=<zone>"，其中 zone 是一个两个字母的国家代码
+ ; 
+ ; You may also specify a default zone with "defaultzone=<zone>" where zone
+ ; is a two letter country code.
+ ;
+ ; 最新的地区列表可以在文件 zonedata.c 中找到
+ ; 区域（国家的代码，两个字母如：中国=cn）的选择，板卡会根据你的区域来播放匹配的音乐如：拨号音、忙音等
+ loadzone = us
+ ;loadzone = us-old
+ ;loadzone=gr
+ ;loadzone=it
+ ;loadzone=fr
+ ;loadzone=de
+ ;loadzone=uk
+ ;loadzone=fi
+ ;loadzone=jp
+ ;loadzone=sp
+ ;loadzone=no
+ ;loadzone=hu
+ ;loadzone=lt
+ ;loadzone=pl
+ ; 设置默认的区域
+ defaultzone=us
+ ;
+ ; PCI Radio Interface
+ ; 
+ ; (see http://www.zapatatelephony.org/app_rpt.html)
+ ;
+ ; The PCI Radio Interface card interfaces up to 4 two-way radios (either
+ ; a base/mobile radio or repeater system) to DAHDI channels. The driver
+ ; may work either independent of an application, or with it, through
+ ; the driver;s ioctl() interface. This file gives you access to specify
+ ; load-time parameters for Radio channels, so that the driver may run
+ ; by itself, and just act like a generic DAHDI radio interface.
+ ;
+ ; Unlike the rest of this file, you specify a block of parameters, and
+ ; then the channel(s) to which they apply. CTCSS is specified as a frequency
+ ; in tenths of hertz, for example 131.8 HZ is specified as 1318. DCS
+ ; for receive is specified as the code directly, for example 223. DCS for
+ ; transmit is specified as D and then the code, for example D223.
+ ;
+ ; The hardware supports a "community" CTCSS decoder system that has
+ ; arbitrary transmit CTCSS or DCS codes associated with them, unlike
+ ; traditional "community" systems that encode the same tone they decode.
+ ; 
+ ; this example is a single tone DCS transmit and receive
+ ;
+ ; specify the transmit tone (in DCS mode this stays constant):
+ ;tx=D371
+ ;
+ ; specify the receive DCS code:
+ ;dcsrx=223
+ ;
+ ; this example is a "community" CTCSS (if you only want a single tone, then
+ ; only specify 1 in the ctcss list)
+ ;
+ ; specify the default transmit tone (when not receiving):
+ ;tx=1000
+ ;
+ ; Specify the receive freq, the tag (use 0 if none), and the transmit code.
+ ; The tag may be used by applications to determine classification of tones.
+ ; The tones are to be specified in order of presedence, most important first.
+ ; Currently, 15 tones may be specified..
+ ;
+ ;ctcss=1318,1,1318
+ ;ctcss=1862,1,1862
+ ;
+ ; The following parameters may be omitted if their default value is acceptible
+ ;
+ ; Set the receive debounce time in milliseconds:
+ ;debouncetime=123
+ ;
+ ; set the transmit quiet dropoff burst time in milliseconds:
+ ;bursttime=234
+ ;
+ ; set the COR level threshold (specified in tenths of millivolts)
+ ; valid values are {3125,6250,9375,12500,15625,18750,21875,25000}
+ ;corthresh=12500
+ ;
+ ; Invert COR signal {y,n}
+ ;invertcor=y
+ ; Set the external tone mode; yes, no, internal {y,n,i}
+ ;exttone=y
+ ;
+ ; Now apply the configuration to the specified channels:
+ ;
+ ; We are all done with our channel parameters, so now we specify what
+ ; channels they apply to
+ ;channels=1-4
+ ;
+ ; Overiding PCM encoding
+ ; ^^^^^^^^^^^^^^^^^^^^^^
+ ; Usually the channel driver sets the encoding of the PCM for the
+ ; channel (mulaw / alaw. That is: g711u or g711a). However there are
+ ; some cases where you would like to override that. 'mulaw' and 'alaw'
+ ; set different such encoding. Use them for channels you have already
+ ; defined with e.g. 'bchan' or 'fxoks'.
+ ;mulaw=1-4
+ ;alaw=1-4
+ ;
+ ; 'deflaw' is similar, but resets the encoding to the channel driver's
+ ; default. It must be useful for something, I guess.
+ ;mulaw=1-10
+ ;deflaw=5
+ ;
+ ; 软件回声消除
+ ; ^^^^^^^^^^^^
+ ; 如果所使用的板卡不支持硬件回声消除，需要增加以下内容使能软件回声消除
+ ; DAHDI 在每个通道上的回音抵消器是模块化的。
+ ; 回音抵消器作为 dahdi-Linux 包的一部分被编译和安装
+ ; 你可以在本文件中为每个通道指定其使用的回音抵消器
+ ; 默认每个通道上是没有任何回音抵消器的
+ ; 所以你在这里设置回音抵消器是非常重要的。
+ ;
+ ; 有效的回音抵消器有：hwec, mg2, kb1, sec2 等。
+ ; hwec是一个特别的回音抵消器，如果硬件回音抵消器想在指定的通道上可用
+ ; MG2 是推荐的回音抵消器，包含在 DAHDI 发行包的正式版本中。
+ ; 另一个开源的回声抵消器是 OSLEC（Open Source Line Echo Canceller），效果非常好。可参考 http://www.rowetel.com/blog/oslec.html
+ ; hpec也是一个可用的回音抵消器，如果编译了的话。
+ ; 
+ ; 配置默认的回声抵消器，格式为：
+ ; echocanceller=<echocanceller name>,<channel(s)>
+ ;
+ ; 例子：
+ ; 配置通道 1~8 使用 MG2 回声抵消器：
+ ;echocanceller=mg2,1-8 
+ ;
+ ; 更改通道 2 使用 kb1 回声抵消器：
+ ;echocanceller=kb1,2
+ ;
+ ; 另外，对于 E1/T1 数字中继卡，无论有没有配置硬件 EC，都要禁用 echocanceller
+ #echocanceller=<echocanceller name>,<channel(s)> 此行注释掉或直接删除
+ 
+*dahdi-channels.conf
+ ; Autogenerated by /usr/sbin/dahdi_genconf on Fri Jul 18 13:16:48 2014
+ ; If you edit this file and execute /usr/sbin/dahdi_genconf again,
+ ; your manual changes will be LOST.
+ ; Dahdi Channels Configurations (chan_dahdi.conf)
+ ;
+ ; This is not intended to be a complete chan_dahdi.conf. Rather, it is intended
+ ; to be #include-d by /etc/chan_dahdi.conf that will include the global settings
+ ;
+ 
+ ; Span 1: TE4/0/1 "T4XXP (PCI) Card 0 Span 1" (MASTER) 
+ group=0,11		; 组号
+ context=from-pstn		; 对应 extensions.conf 中的 context
+ switchtype = euroisdn	;
+ signalling = pri_cpe		; 信令方式
+ channel => 1-15,17-31	; 通道
+ context = default
+ group = 63
+ 
+ ; Span 1: WCTDM/0 "Wildcard TDM400P REV E/F Board 1" (MASTER) 
+ ;;; line="1 WCTDM/0/0"
+ signalling=fxo_ks		; 信令方式
+ callerid="Channel 1" <6001>	; 主叫名字和号码
+ mailbox=6001		; 语音信箱号码
+ group=5			; 组号
+ context=from-internal	; 对应 extensions.conf 中的 context
+ channel => 1		; 通道
+ callerid=
+ mailbox=
+ group=
+ context=default

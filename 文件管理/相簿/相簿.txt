@@ -1,0 +1,16 @@
+===相簿管理===
+
+*Web的相簿管理器
+ Gallery
+
+====Gallery====
+*安装问题
+ Q: Gallery requires short_open_tag to be on.
+ A:  gallery3/php.ini: short_open_tag = On
+ A: /etc/php5/apache2/php.ini: short_open_tag = On
+
+*使用中文界面
+ Admin - Settings - Languages - Installed、Default language 选择简体中文 - Update languages
+
+*安装 Toolkit
+ sudo apt-get install php5-gd
