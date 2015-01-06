@@ -3,6 +3,7 @@
 *搭建 GIT 服务器
  1、直接使用 GIT
  2、[[GITLAB|GITLAB]]
+ 3、[[GitForWindows|GitForWindows]]
 
 *配置
 

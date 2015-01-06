@@ -1,0 +1,34 @@
+===Git For Windows===
+
+====中文乱码====
+*使用 git add 命令添加文件名含中文字符的文件时乱码
+ 	编辑 C:\Git\etc\inputrc 文件
+ 	查找以下2行，并修改其值， 
+ 		set output-meta off
+ 		set convert-meta on
+ 	改为：
+ 		set output-meta on
+ 		set convert-meta off
+
+*使用 git log 查看含有中文的 log 信息时乱码
+ 	在 Bash 提示符下输入：
+ 	git config --global i18n.commitencoding utf-8
+ 	git config --global i18n.logoutputencoding gbk
+
+ 	注：设置 commit 提交时使用 utf-8 编码，可避免 Linux 服务器上乱码；同时设置在执行 git log 时将 utf-8 编码转换成 gbk 编码，以解决乱码问题
+ 	编辑C:\Git\etc\profile文件，添加如下一行：
+ 		export LESSCHARSET=utf-8
+
+ 	注：以使 git log 可以正常显示中文（需要配合：i18n.logoutputencoding gbk）
+
+*使用ls命令查看含有中文的文件名乱码时乱码
+ 	使用 ls –-show-control-chars 命令来强制使用控制台字符编码显示文件名，即可查看中文文件名。 
+ 	编辑 C:\Git\etc\git-completion.bash 文件，添加如下一行：
+ 		alias ls="ls --show-control-chars"
+
+*在 Git Gui 中查看 UTF-8 编码的文本文件
+ 	方法一：在 Bash 提示符下输入：git config --global gui.encoding utf-8
+ 	方法二：GitGUI - 编辑 - 选项 - Default File Contents Encoding - utf-8
+ 
+ 	注：通过上述设置，UTF-8 编码的文本文件可以正常查看，但是 GBK 编码的文件将会乱码
+ 		可行的方法之一为：将所有文本文件的编码统一为 UTF-8 或 GBK，然后设置相应的 gui.encoding 参数为 utf-8 或 gbk

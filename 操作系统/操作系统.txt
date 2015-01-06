@@ -1,7 +1,7 @@
 === 操作系统 ===
 
 ==== Windows ====
-
+*[[Win8.1|Win8.1]]
 *[[WindowsControlUbuntu|win7 远程桌面连接 Ubuntu Kylin 14.04]]
 
 ==== Linux ====
@@ -10,6 +10,7 @@
 *[[Vim|Vim]]
 *[[Ubuntu|Ubuntu]]
 *[[CentOS|CentOS]]
+*[[Kali|Kali]]
 *[[Problem|常见问题]]
 
 ==== Mac OS ====

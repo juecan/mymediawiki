@@ -1,0 +1,96 @@
+===Windows 8.1===
+
+====使用 WinPE 将空白磁盘转换成 GUID 格式并分区====
+ WinPE 系统 -> DiskGenius -> 空白硬盘 -> 硬盘 -> 转换分区表类型为GUID格式 -> 分区 -> 建立新分区（ESP(EFI)+MSR(Win保留)） -> 添加其他分区
+
+[[Image:WinPE-GUID-001.png]]
+[[Image:WinPE-GUID-002.png]]
+[[Image:WinPE-GUID-003.png]]
+[[Image:WinPE-GUID-004.png]]
+[[Image:WinPE-GUID-005.png]]
+[[Image:WinPE-GUID-006.png]]
+[[Image:WinPE-GUID-007.png]]
+
+====Win8.1 安装密钥====
+ 专业版：XHQ8N-C3MCJ-RQXB6-WCHYG-C9WKB
+ 数据中心版：BH9T4-4N7CW-67J3M-64J36-WW98Y
+ 标准版：NB4WH-BBBYV-3MPPC-9RCMV-46XCB
+
+====Win8.1 跳过安装密钥====
+ 新建文件 ei.cfg，保存到 Win8.1 U 盘启动盘 X:\sources 目录（X：代表 U 盘盘符），内容如下：
+ 	[EditionID]
+ 	Professional
+ 
+ 	[Channel]
+ 	Volume
+ 
+ 	[VL]
+ 	1
+
+[[Image:win8.1-ei.cfg.jpg]]
+
+*说明
+ 1. [EditionID]：版本名称
+ 	零售版系统包含 Professional、Core 两个版本（其他也包括 ProfessionalWMC、Enterprise）
+ 2. [Channel]：渠道，
+ 	零售（Retail）、批量授权（Volume）、OEM（OEM）
+ 3. [VL]：是否为批量版，可选数值 0 或者 1
+ 	0 代表 Retail 零售版，1 代表 Volume 批量授权版
+
+====系统错误====
+*删除 RocketTab 后开机报错
+ Windows 找不到到文件 'C:\Program Files\RocketTab\Client.exe'。请确定文件名是否正确后，再试一次。
+ 我的电脑 - C - Windows - System32 - Tasks - 删除所有带 Rocket 的文件 - 重启
+
+====精确分区====
+ 分区大小（举例）	分区时应该输入的数字
+ 10G	10245
+ 20G	20482
+ 30G	30726
+ 40G	40963
+ 50G	51208
+ 60G	61444
+ 70G	71681
+ 80G	81926
+ 90G	92162
+ 100G	102407
+ 110G	112644
+ 120G	122888
+ 130G	133125
+ 140G	143362
+ 150G	153606
+ 160G	163843
+ 170G	174088
+ 180G	184324
+ 190G	194561
+ 200G	204806
+ 210G	215042
+ 220G	225287
+ 230G	235524
+ 240G	245768
+ 250G	256005
+ 260G	266242
+ 270G	276486
+ 280G	286723
+ 290G	296968
+ 300G	307204
+ 310G	317441
+ 320G	327686
+ 330G	337922
+ 340G	348167
+ 350G	358404
+ 360G	368648
+ 370G	378885
+ 380G	389122
+ 390G	399366
+ 400G	409603
+ 410G	419848
+ 420G	430084
+ 430G	440321
+ 440G	450566
+ 450G	460802
+ 460G	471047
+ 470G	481284
+ 480G	491528
+ 490G	501765
+ 500G	512002
