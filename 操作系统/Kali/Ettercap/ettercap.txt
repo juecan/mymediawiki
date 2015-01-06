@@ -34,6 +34,10 @@
  端口部分也有类似的写法，看例子：
  	"20-25,80,110" 表示 20, 21, 22, 23, 24, 25, 80 和 110
 
+*新版的 ettercap 为格式为：
+ 	ettercap [OPTIONS] [TARGET1] [TARGET2]
+ 	TARGET: MAC/IP/IPv6/PORTs
+
 ==== 中间人攻击 ====
 
 *[[中间人攻击-ARP毒化|MITM]]
