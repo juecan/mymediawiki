@@ -1,0 +1,330 @@
+===七号信令===
+
+====信令消息====
+ IAM 	初始地址消息
+ IAI	带有附加信息的初始地址消息
+ SAM/SAO	后续地址消息
+ ST	脉冲终了信令
+ GRQ	一般请求消息
+ GSM	一般前向建立信息消息
+ ACM	地址全信令
+ ADI	地址不全信令
+
+*被叫用户状态信令
+ SLB	用户市忙信令
+ STB	用户长忙信令
+ LOS	线路不工作信令
+ UNN	空号
+ SST	发送专用信息音信令
+ ANN/ANC	应答信令，表示被叫用户摘机应答
+
+ 应答信令包括应答、计费（ANC）和应答、免费（ANN）两种信令
+ 它根据被叫用户第一次摘机信令送出及收到的被叫号码确定。
+ 来话 No.7 信令方式交换局收到应答、计费或应答免费信令应进行转发。
+ 执行计费的交换局收到应答、计费信令时开始执行计费程序。
+
+ CLF	前向拆线信令，主叫先挂机
+ CBK	挂机信令，被叫用户已挂机
+ RLG	后向拆线信令
+ RSC	电路复原信令
+ GRS	电路群复原信令
+
+====信令流程====
+*用户忙
+ 	------------------- IAM ------------------->
+ 	<----- SLB/STB/LOS/UNN/SST -----
+ 	--- 空号音或录音通知（UNN）---
+ 	------------------- CLF ------------------->
+ 	<---------------- RLG ---------------------
+
+*通话
+ 	A ------------------- IAM ------------------> B
+ 	A <---------------- ACM -------------------- B
+ 	A ------------ A 回铃，B 振铃 ------------ B
+ 	A <------------ ANN/ANC----------------- B
+ 	A -------------------- 通话 -------------------- B
+ 	A ------------------- CLF -------------------> B主叫先挂机
+ 	A <---------------- RLG --------------------- B
+
+*通话
+ 	A ------------------- IAM ------------------> B
+ 	A <---------------- ACM -------------------- B
+ 	A ------------ A 回铃，B 振铃 ------------ B
+ 	A <------------ ANN/ANC----------------- B
+ 	A -------------------- 通话 -------------------- B
+ 	A <---------------- CBK --------------------- B 被叫先挂机
+ 	A ------------------- CLF -------------------> B
+ 	A <---------------- RLG --------------------- B
+
+*通话
+ 	A ------------------- IAM ------------------> B
+ 	A ------------------- SAO ------------------> B
+ 	A ------------------- SAO ------------------> B
+ 	A ------------------- SAO ------------------> B
+ 	A <---------------- ACM -------------------- B
+ 	A ------------ A 回铃，B 振铃 ------------ B
+ 	A <------------ ANN/ANC----------------- B
+ 	A -------------------- 通话 -------------------- B
+ 	A ------------------- CLF -------------------> B主叫先挂机
+ 	A <---------------- RLG --------------------- B
+
+====ss7.conf====
+ ; Asterisk ss7 配置
+ ; chan_ss7 的配置
+ ;
+ ; Asterisk 的 chan_ss7 配置文件是 ss7.conf，一般位于 /etc/asterisk
+ ;
+ ; 请和运营商沟通确认
+ ;	chan_ss7 目前仅支持中国变种的 IUSP ，不支持 TUP 协议
+ ;	是否支持 CRC 校验，目前 dahdi 仅支持 CRC4 和 NCRC
+ ;	确认 CIC 从几开始（如 0）
+ ;	libss7 支持中国 ISUP，但是没有经过太多测试
+ ;	OPC 和 DPC 点码：运营商会提供 OPC 和 DPC 点码，需要在 ss7.conf 文件中配置
+ ;	确认运营商给定的线路端口顺序，必须和板卡端口一一对应，否则可能出现呼叫问题
+ ;	每条 E1 线的顺序，特别是信令时隙所在的 E1 线，在 E1 线上标好号，防止后期调整把线搞乱
+ ;
+ ; 配置文件包含许多部分：
+ ;	[linkset-name]	定义链路集
+ ;	[link-name]	定义链路
+ ;	[host-name]	定义主机
+ ;	[cluster]		定义集群
+ ;
+ ; BNC长头，短头用法：短头-Rx-12, 长头-Tx-45
+ ;
+ ; chan_ss7 安装时注意：
+ ;	* 修改 Makefile：
+ ; 		ASTERISK_PATH=Asterisk源码路径
+ ;		INCLUDE+=-Idahdi源码路径
+ ; 	* make && make install
+ ;	* 拷贝文件：
+ ;		cp chan_ss7.so /usr/lib/asterisk/modules/
+ ;		cp ss7.conf /etc/asterisk/
+ ;	* 修改通道配置：只有语音通道，没有信令通道
+ ;		vi /etc/dahdi/system.conf
+ ;		#bchan=1-15,17-31
+ ;		#dchan=16
+ ;		#echocanceller=mg2,1-15,17-31
+ ;		bchan=1-31
+ ;	* 禁用 chan_dahdi.so：
+ ;		vi /etc/asterisk/modules.conf
+ ;		noload => chan_dahdi.so
+ ;		chan_ss7 通过代替 chan_dahdi(chan_zaptel)的方式
+ ;		解析 SS7 协议（仅 ISUP）以及控制其他 PCM 电路通道
+ ;		故不能与 chan_dahdi/chan_zaptel 一起使用
+ ;		可清空 zapatal.conf/dahdi-channels.conf 或 禁用 chan_dahdi.so
+ ; 	* 线路连接：根据链路配置一对一连接，本机 link-l1 <-> 对端 link-l1
+ ;
+ ; 准直联方式：物理独立的信令中继电路
+ ; 	没有语音通道：channels =>
+ ; 	只有信令通道：schannel => 1
+ ;
+ ; 注意拨号规则配置：
+ ;	* 分机不指定通道呼出：
+ ;		Dial(ss7/siuc/${EXTEN})
+ ;	* 分机通过指定通道 siuc 的 120 呼出：
+ ;		Dial(ss7/siuc:120/${EXTEN})
+ ;
+ ;------------------------------ 以下为 ss7.conf 配置 ------------------------------
+ ;
+ ; 定义链路集：linkset，[linkset-name]
+ ; name 是 linkset 的名称
+ [linkset-name]
+ 
+ ; The linkset is enabled
+ enabled => yes
+ 
+ ; This is used to decide whether end-of-pulsing (ST) is not used to determine when incoming address is complete.
+ ; The end-of-pulsing (ST) is not used to determine when incoming address is complete
+ enable_st => no
+ 
+ ; Reply incoming call with CON rather than ACM and ANM
+ use_connect => yes
+ ;
+ ; The CIC hunting policy（选线策略）：
+ ;	even_mru		偶数优先
+ ;	odd_lru		奇数优先
+ ;	seq_lth		从低选，并选择最近使用的 cic
+ ;	seq_htl		从高选，并选择最近使用的 cic
+ ; 大多使用 even_mru
+ ; 该算法用于给呼出电话分配电路，两端须一致以尽量减少呼叫冲突（同时在同一电路上拨电话）
+ ; 正确选择 CIC 呼叫策略，可以避免 CIC 电路双抢的问题，减少呼出语音不通的情况
+ hunting_policy => even_mru
+ 
+ ; Incoming calls（呼入呼叫）对应的拨号计划中的 context，可随意修改
+ context => ss7
+ 
+ ; 拨号计划中的 context 的语言选项，根据实际语音文件位置情况修改
+ ; The asterisk language to use for incoming calls on this linkset
+ language => da
+ 
+ ; The value and action for t35. Value is in msec, action is either st or timeout
+ ; If you use overlapped dialling dial plan, you might choose: t35 => 4000,st
+ t35 => 15000,timeout
+ 
+ ; subservice 取值：national (8), international (0), auto or decimal/hex value
+ ; 	The auto means that the subservice is obtained from first received SLTM
+ ; subservice，这个不能乱设的，一般来说 auto 或 national 就对了
+ ; auto：根据对方发来的 sltm 消息自动获取 subservice
+ ; 如果有的时候 auto 无法取得这个值，就得手工设了，一般设成 national 就行
+ ; 如有特殊需要，则可以跟交换机房查询这个值。这个是mtp3层的，所以如果需要修改源代码，得看mtp.c
+ ; 主叫地址属性，支持国内有效，国际有效
+ subservice => auto
+ 
+ ; The host running the mtp3 service
+ ; mtp3server => localhost
+ 
+ ; 支持中国 SS7 的 24bit 点码
+ ; 设置为中国变种-SS7 ISUP
+ variant => CHINA
+ 
+ ; Nature of Address
+ ; 地址属性
+ ;noa
+ ;
+ ; 链路：l1 为第一个链路名称
+ ; [link-name]
+ [link-l1]
+ 
+ ; 链路 link 所属的链路集 linkset
+ linkset => siuc
+ 
+ ; 链路中的语音通道（The speech/audio circuit channels on this link）
+ channels => 1-15,17-31
+ 
+ ; 信令通道（The signalling channel），只需配置一个 link 里面配置信令通道，其他 link 置空
+ schannel => 16
+ ; To use the remote mtp3 service, use 'schannel => remote,16'
+ 
+ ; CIC：Circuit Identification Code，电路识别码，标识 PCM 电路位置的编码
+ ; 一个 E1 的帧长为 256 个 bit，分为 32 个时隙（Time slot），一个时隙为 8 个bit
+ ; 32 个时隙中：
+ ;	第 0 时隙被用作帧同步信息
+ ;	一般使用第 16 时隙作为信令通道
+ ;	其余 30 个时隙被用作语音通道
+ ; 如果运营商给的 CIC 从 0 开始，第一个 firstcic 一般设为 1，之后的依次增加 32
+ ; 链路中的第一个语音 CIC
+ ; cic 配错可能导致：链路正常，呼叫有振令，但是互相听不到语音
+ firstcic => 1
+ 
+ ; The link is enabled
+ enabled => yes
+ 
+ ; 回声抵消器（Echo cancellation）
+ ; 回声抵消可设为：no, 31speech (enable only when transmission medium is 3.1Khz speech), allways
+ echocancel => no
+ ; echocan_train specifies training period, between 10 to 100 msec
+ echocan_train => 350
+ ; echocan_taps specifies number of taps, 32, 64, 128 or 256
+ echocan_taps => 128
+ 
+ ;ragain =>
+ ;txgain =>
+ ; When set to yes, the CICs on that link are blocked when signalling on the link is lost.
+ ;auto_block =>
+ 
+ ; 信令链路中加入此项可
+ ; SLTM：signaling link test message，信令链路测试消息
+ 双方互相发送信令链路测试消息 SLTM，对方收到后回送信令链路测试证实消息SLTA
+ ; 设为 yes，不会出现 [EVENT] mtp.c:1008 mtp3_send_sltm Sending SLTM to peer on link 'l1'....
+ 	[Jul 31 11:21:02] WARNING[30061]: l4isup.c:5213 l4isup_event: Received GRS (CIC 65), link 'l1'.
+ 	[Jul 31 11:21:02] NOTICE[30061]: l4isup.c:2959 handle_GRS_send_hwblock: Got GROUP RESET message, opc=0x1, dpc=0x2, sls=0x1, cic=65, range=30.
+ 	[Jul 31 11:21:54] NOTICE[30061]: mtp.c:1064 mtp3_send_sltm: Sending SLTM to peer on link 'l1'....
+ sltm => no
+ 
+ ; 定义主机
+ ; name 是 linux 的 hostname
+ [host-name]
+ ; chan_ss7 通过匹配机器的主机名自动配置 host-<name>
+ 
+ ; The host is enabled
+ enabled => yes
+ 
+ ; OPC：The point code for this SS7 signalling point
+ ; 信令源点码：标识本信令点，由交换提供参数
+ ; 和运营商获取源点码
+ opc => 0x8e0
+ 
+ ; DPC：The destination point (peer) code for linkset siuc
+ ; 信令目标点码
+ ; 和运营商获取目的地点码
+ ; 0xcc 是 STP 点码，由交换提供
+ ; 	* 交换提供的点码可能是 3 段 10 进制的数字，要合并转换成 16 进制
+ ; dpc => siuc:0x3fff,l1:0xcc
+ ; dpc => linkset名称:对端OPC
+ ; If the link connected to an STP (with point code 0x123), you may use
+ ;dpc => siuc:0x3ff,l1:0x123
+ dpc => siuc:0x3fff
+ ;
+ ; 点码：
+ ;	点编码在 7 号信令中类似于 IP 网络中的 IP 地址。
+ ;	在 MTP 第 3 层中用于对消息信号单元（MSU）的目标进行识别的唯一地址节点（信令点，Signaling Point 或 SP）。
+ ;	在这个信息中，有一个始发点代码（Originating Point Code，OPC）和一个目标点代码（Destination Point Code，DPC）；
+ ;	有时文件还提到它作为一个信令点编码。
+ ;
+ ;	现有网络上，一个点代码可以是 24 位（北美，中国），16 位（日本），或 14 位（ITU 标准，国际 SS7 网络和大多数国家）的长度。
+ ;
+ ;	ANSI点编码使用24位，大多是在8-8-8格式。
+ ;	ITU点编码使用14位，均为在3-8-3格式。
+ ;
+ ;	14位点编码为可写模式。最常见的格式是十进制数，十六进制数，或 3-8-3 的格式（3个最重要的位，中间8位，3个最低有效位）。
+ ;	24位点编码为十进制，十六进制或 8-8-8 格式任选其一。
+ ;
+ ;	缩写
+ ;		OPC，Originating Point Code（始发点代码）
+ ;		DPC，Destination Point Code（目标点代码）
+ ;		ISPC，International Signaling Point Code（国际信令点编码）
+ ;
+ ; 链路列表：connector-no pains that specifies which links are on which connectors
+ ; 对应 link 数量
+ ; Syntax: links => link-name:digium-connector-no
+ ; The links on the host is 'l1', connected to span/connector #1
+ ; links => 链路名:span序号,链路名:span序号,……
+ ; links => l1:1,l2:2,l3:3 依次类推
+ links => l1:1
+ 
+ ; The SCCP global title: translation-type, nature-of-address, numbering-plan, address
+ globaltitle => 0x00, 0x04, 0x01, 4546931411
+ ssn => 7
+ route => 919820405471:ra_geb, 919820367598:ra_geb, 919820706441:ra_geb, :ra_geb
+ 
+ ; This sets the SS7 linkset that receives outgoing calll where no linkset is defined in the Dial command'.
+ ;default_linkset
+ 
+ [jitter]
+ ;------------------------------ JITTER BUFFER CONFIGURATION --------------------------
+ ; jbenable = yes              ; Enables the use of a jitterbuffer on the receiving side of a
+                               ; SIP channel. Defaults to "no". An enabled jitterbuffer will
+                               ; be used only if the sending side can create and the receiving
+                               ; side can not accept jitter. The SIP channel can accept jitter,
+                               ; thus a jitterbuffer on the receive SIP side will be used only
+                               ; if it is forced and enabled.
+ 
+ ; jbforce = no                ; Forces the use of a jitterbuffer on the receive side of a SIP
+                               ; channel. Defaults to "no".
+ 
+ ; jbmaxsize = 200             ; Max length of the jitterbuffer in milliseconds.
+ 
+ ; jbresyncthreshold = 1000    ; Jump in the frame timestamps over which the jitterbuffer is
+                               ; resynchronized. Useful to improve the quality of the voice, with
+                               ; big jumps in/broken timestamps, usually sent from exotic devices
+                               ; and programs. Defaults to 1000.
+ 
+ ; jbimpl = fixed              ; Jitterbuffer implementation, used on the receiving side of a SIP
+                               ; channel. Two implementations are currently available - "fixed"
+                               ; (with size always equals to jbmaxsize) and "adaptive" (with
+                               ; variable size, actually the new jb of IAX2). Defaults to fixed.
+ 
+ ; jblog = no                  ; Enables jitterbuffer frame logging. Defaults to "no".
+ ;-----------------------------------------------------------------------------------
+ ;jbenable = yes
+ ;jbmaxsize = 1000
+ ;jbresyncthreshold = 1000
+ ;jbresyncthreshold = 160
+ ;jbimpl = adaptive
+ 
+ ; 集群配置
+ ;[cluster]
+ ; This section has an entry for each link that is monitored by another host.
+ ; Each eantry has a list of host#address pairs.
+ ; All sections has an enabled entry; if this entry is no, chan_ss7 disregards the section.
+ ; The source code distribution of chan_ss7 comes with a number fo configuration templates.

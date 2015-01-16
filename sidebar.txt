@@ -1,0 +1,26 @@
+
+* navigation
+** mainpage|mainpage-description
+** recentchanges-url|recentchanges
+** randompage-url|randompage
+** helppage|help
+
+* 我的 Wiki
+** VoIP|VoIP
+** HTPC|HTPC
+** MediaWiki|知识库管理
+** FileSystem|文件管理
+** ProjectManager|项目管理
+** NetworkManager|网络管理
+** MindMap|思维导图
+** OAOffice|OA办公系统
+** OS|操作系统
+
+* 收藏
+** MediaWiki:Sidebar|侧边栏
+** VoIP|VoIP
+** OpenELEC|OpenELEC
+
+* SEARCH
+* TOOLBOX
+* LANGUAGES
