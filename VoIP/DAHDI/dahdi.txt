@@ -1,8 +1,9 @@
 ===DAHDI===
 
-*执行 dahdi_test 命令，通常测试结果在 99.5%以上， 如果过低有可能是硬件出现故障。
+====测试板卡====
+ 执行 dahdi_test 命令，通常测试结果在 99.5%以上， 如果过低有可能是硬件出现故障。
 
-*lsdahdi
+====lsdahdi====
  [~]# lsdahdi 
  ### Span  1: TE4/0/1 "T4XXP (PCI) Card 0 Span 1" CCS/HDB3/CRC4 ClockSource
  1	PRI	Clear		(In use)	(EC: MG2 - INACTIVE)	
@@ -16,7 +17,7 @@
  YELLOW：表示物理链路有问题，两端 crc4 不同也会出现
  RED：表示没有接线
 
-*/proc/dahdi
+====/proc/dahdi====
  [~]# cat /proc/dahdi/2
  Span 2: TE4/0/2 "T4XXP (PCI) Card 0 Span 2" CCS/HDB3/CRC4 
  	Timing slips: 21593
